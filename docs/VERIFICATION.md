@@ -14,4 +14,8 @@ The owner confirmed that the archived median-based shuffle heuristic is the inte
 
 The restoration revision changes documentation and figure assets only. Analysis source files, numerical parameters, and original image bytes are unchanged from the preceding portfolio revision. Existing software-check results were not represented as newly rerun analyses.
 
-No source recordings, saved NMF results, or original random/ICA logs were available. Report findings are faithful transcriptions from the supplied brief, not independently reproduced results. The pre-existing PDF remains unreviewed. See [Methods](METHODS.md) and [Data/publication](DATA_AND_PUBLICATION.md).
+## Project-report organization
+
+The owner identified the existing repository PDF as this project's report. It was moved from the repository root to `docs/reports/digital-signal-processing-of-cortical-and-muscular-dynamics.pdf` by reusing the original Git blob `9571721addd6e27d29333a53b3b204f650191a32` (9,057,204 bytes). The move preserves the file contents; README, report-index, and attribution links were updated. Analysis code and figures are unchanged by this organization step.
+
+No source recordings, saved NMF results, or original random/ICA logs were available. Report findings are faithful transcriptions from the supplied brief, not independently reproduced results. The project PDF remains unreviewed. See [Methods](METHODS.md) and [Data/publication](DATA_AND_PUBLICATION.md).

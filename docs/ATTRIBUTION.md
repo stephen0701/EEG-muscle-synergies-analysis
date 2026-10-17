@@ -2,7 +2,9 @@
 
 **Sing-Hao Wang:** primary code implementation, workflow integration, analysis, and research presentation, confirmed by the project owner during portfolio preparation. These contributions do not imply invention or sole ownership of external scientific algorithms.
 
-**Research source:** Sing-Hao Wang, *Toward Digital Twin-Centered Human-Exoskeleton Collaboration: From Multi-Resolution Corticomuscular Coupling Analyses to an Incremental Mixture-of-Experts Locomotion Controller*, undergraduate capstone report, June 2026, Chapter 5, pp. 45-52. Scope and reported findings were taken from the supplied `RESEARCH_BRIEF.md`, not independently extracted from the full capstone. The existing repository PDF is not assumed to be that final report.
+**Project report:** [*Digital Signal Processing of Cortical and Muscular Dynamics*](reports/digital-signal-processing-of-cortical-and-muscular-dynamics.pdf), identified by the repository owner as the report for this project. The original PDF content is preserved; its full bibliographic metadata and contents have not been independently reviewed.
+
+**Broader capstone source:** Sing-Hao Wang, *Toward Digital Twin-Centered Human-Exoskeleton Collaboration: From Multi-Resolution Corticomuscular Coupling Analyses to an Incremental Mixture-of-Experts Locomotion Controller*, undergraduate capstone report, June 2026, Chapter 5, pp. 45-52. Scope and reported findings in the English documentation were taken from the supplied `RESEARCH_BRIEF.md`, not independently extracted from either PDF.
 
 **External methods and software:**
 

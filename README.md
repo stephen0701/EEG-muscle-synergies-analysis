@@ -10,6 +10,12 @@ This project investigates how EMG-derived muscle co-activation modules vary duri
 
 Sing-Hao Wang primarily implemented the code, assembled the processing workflow, analyzed the results, and prepared the research presentation (project-owner confirmation). The contribution integrates band-specific EMG processing, NMF extraction, repeated-trial matching, and EEG topographic visualization. External NMF solvers and EEG cleaning algorithms are not claimed as new algorithms.
 
+## Project report
+
+Read the project report: [*Digital Signal Processing of Cortical and Muscular Dynamics* (PDF)](docs/reports/digital-signal-processing-of-cortical-and-muscular-dynamics.pdf).
+
+The repository owner identified this document as the report for this project. The [report index](docs/reports/README.md) records its original filename and file provenance.
+
 ## Data and methodology
 
 The setup combined 32-channel EEG at 500 Hz, eight bilateral lower-limb sEMG channels at 1000 Hz, and four-camera markerless motion capture at 30 Hz. Participant recordings are not distributed with this portfolio.
@@ -73,9 +79,10 @@ The [complete results gallery](docs/RESULTS.md) also includes VAF/ΔVAF selectio
 | [Function/](Function/) | Shared diagnostic plotting helpers |
 | [research_paths.m](research_paths.m) | Configured private inputs and local output paths |
 | [docs/RESULTS.md](docs/RESULTS.md) | Complete figure gallery with interpretation and corrections |
+| [docs/reports/](docs/reports/) | Project report PDF and file provenance |
 | [docs/REPRODUCIBILITY.md](docs/REPRODUCIBILITY.md) | Requirements, data contract, section order, and reproduction limits |
 
-The established source folders are retained because the scripts share workspace variables. The root PDF remains legacy reference material and has not been cleared for public release; see [Data and publication](docs/DATA_AND_PUBLICATION.md).
+The established source folders are retained because the scripts share workspace variables. The project report is organized under `docs/reports/`; see [Data and publication](docs/DATA_AND_PUBLICATION.md) for its review status.
 
 ## Requirements and use
 
