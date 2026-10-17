@@ -1,9 +1,15 @@
-
+% RESEARCH NOTE: This archive contains section-based research scripts.
+% See docs/REPRODUCIBILITY.md before executing sections. Alternatives overwrite
+% shared variables; running the entire file is not a verified report pipeline.
+% Each legacy subject/subj index denotes a trial from ONE participant.
+repo_root = fileparts(fileparts(mfilename('fullpath')));
+addpath(repo_root, fullfile(repo_root, 'Function'));
+paths = research_paths();
 
 %% read data
 
 % 檔案資料夾路徑
-folder_path = "C:\Users\USER\Desktop\大學專題\data\20241225\path2";
+folder_path = paths.trial_folder;
 
 % 取得 eeg_path1_*.csv 檔案
 files = dir(fullfile(folder_path, 'EEG_path2_*.csv'));
@@ -387,7 +393,7 @@ for i = 1:numel(EEG_data)
             threshold = 10; % ASR 的閾值 (可以設置 10 或 20)
 
             % 呼叫 ASR 函數並接收返回的 ASRbase 和 ASRmove
-            [EEG, ASRbase, ASRmove] = ASR(data, sample_rate, threshold);
+            [EEG, ASRbase, ASRmove] = ASR(data, sample_rate, threshold, paths.channel_locations);
             
             % 將 ASRbase 和 ASRmove 的資料分別存入 EEG_data
             EEG_data{i}.asr = EEG.data';
@@ -416,13 +422,13 @@ plot_frequency_response(raw_data, processed_data, ch_list, fs, legend_names);
 
 % ASR 函數定義
 
-function [EEG, ASRbase, ASRmove] = ASR(data, sample_rate, threshold)
+function [EEG, ASRbase, ASRmove] = ASR(data, sample_rate, threshold, channel_locations)
     % 導入數據
     EEG = pop_importdata('dataformat', 'array', 'nbchan', 0, 'data', data, 'srate', sample_rate, 'pnts', 0, 'xmin', 0);
     EEG = eeg_checkset(EEG);
 
     % 載入通道位置
-    EEG = pop_chanedit(EEG, 'load', {'C:\Users\USER\Desktop\大學專題\EEG\channel_loc\ch32.ced', 'filetype', 'autodetect'});
+    EEG = pop_chanedit(EEG, 'load', {channel_locations, 'filetype', 'autodetect'});
     EEG = eeg_checkset(EEG);
 
     % ASR校正
@@ -494,7 +500,7 @@ end
 disp('Extracted data variables:');
 whos('Data*');
 
-%% 讀取.set檔案 (完成ICA後)
+%% Import .set files after manual ICA in EEGLAB
 
 % 定義電極名稱
 ch_list = {'Fp1', 'Fp2', 'AF3', 'AF4', 'F7', 'F3', 'Fz', 'F4', 'F8', ...
@@ -508,7 +514,7 @@ fs = 500;
 legend_names = {'ASR data', 'ICA data'};
 
 % 文件夾路徑
-folder_path = 'C:\Users\USER\Desktop\大學專題\data\20241225\ICA(path2)';
+folder_path = paths.ica_dir;
 
 % 搜索所有 .set 文件
 set_files = dir(fullfile(folder_path, '*.set'));
@@ -596,7 +602,7 @@ plot_all_channels(raw_data, processed_data, ch_list, fs, legend_names);
 %% plotting data at each processing stage
 
 % 檔案資料夾路徑
-folder_path = "C:\Users\USER\Desktop\大學專題\data\20241009\20241009";
+folder_path = paths.data_root;
 
 % 取得 eeg_path1_*.csv 檔案
 files = dir(fullfile(folder_path, 'EEG_path1_*.csv'));
@@ -677,7 +683,7 @@ for i = 1:numel(EEG_data)
     sgtitle(['EEG Data Processing Stages for file: ', files(i).name], 'Interpreter', 'none');
 end
 
-%% Plot topology map with frequency bands (依據頻段套用不同參數)
+%% EEG band-power topographies (qualitative comparison only)
 
 % ====== 參數設定 ======
 fs = 500;
@@ -727,7 +733,7 @@ for subj = 1:num_subjects
     clip_cells = EEG_data{subj}.clip;
     if isempty(clip_cells), continue; end
     if length(clip_cells) ~= num_clips
-        warning('第 %d 位受試者 clip 數量不符，略過', subj);
+        warning('Trial %d has an unexpected number of phase clips; skipped.', subj);
         continue;
     end
 
@@ -763,7 +769,7 @@ for subj = 1:num_subjects
 end
 
 % ====== 設定儲存路徑與 colorbar 模式 ======
-base_path = 'C:\Users\USER\Desktop\大學專題\data\20241225\topology_map_colorbar_compare';
+base_path = fullfile(paths.results_root, 'topology_map_colorbar_compare');
 colorbar_modes = {'global', 'stage', 'band'};
 
 for m = 1:length(colorbar_modes)
@@ -857,7 +863,7 @@ channels = {'Fp1', 'Fp2', 'AF3', 'AF4', 'F7', 'F3', 'Fz', 'F4', 'F8', ...
             'P7', 'P3', 'Pz', 'P4', 'P8', 'O1', 'Oz', 'O2'};
 
 % 設置保存圖片的路徑
-save_path = 'C:\Users\USER\Desktop\大學專題\data\20241009\fast fourier transform';
+save_path = fullfile(paths.results_root, 'fast_fourier_transform');
 
 % 初始化頻率和能量的數組
 for i = 1:length(EEG_data)
@@ -916,7 +922,7 @@ end
 %% Spectrogram with Frequency Bands 
 
 % 設置保存圖片的路徑
-save_path = 'C:\Users\USER\Desktop\大學專題\data\20241009\spectrogram(new)';
+save_path = fullfile(paths.results_root, 'spectrogram_new');
 
 % 頻帶參數設定：{'名稱', [頻率範圍], window_size, overlap, nfft}
 band_params = {
@@ -992,10 +998,10 @@ for i =1
     end
 end
 
-%% PAC  
+%% Exploratory EEG-only PAC (not EEG-synergy coherence)
 
 % 設置圖片存儲路徑
-save_path = 'C:\Users\USER\Desktop\大學專題\data\20241225\PAC';
+save_path = fullfile(paths.results_root, 'PAC');
 
 if ~exist(save_path, 'dir')
     mkdir(save_path);
@@ -1053,7 +1059,7 @@ function pac_results = PAC(EEG_data, phase_freqs, amp_freqs, fs, ch_list, save_p
             end
         end
 
-        fprintf('[%s] 最大 Alpha 功率：Subject %d, Channel %s\n', ...
+        fprintf('[%s] Maximum Alpha power: Trial %d, Channel %s\n', ...
             transient_stages{stage_idx}, max_subject_idx, ch_list{max_channel_idx});
 
         data = EEG_data{1, max_subject_idx}.clip{1, stage_idx};
@@ -1124,7 +1130,7 @@ function plot_pac_results(pac_matrix, phase_freqs, amp_freqs, i, stage_name, cha
     clim([0, 1]);
     xlim([min(phase_freqs), max(phase_freqs)]);
     ylim([min(amp_freqs), max(amp_freqs)]);
-    filename_CO = sprintf('Coherence-PAC_subject%02d_%s.png', i, strrep(stage_name, ' ', '_'));
+    filename_CO = sprintf('Coherence-PAC_trial%02d_%s.png', i, strrep(stage_name, ' ', '_'));
     saveas(gcf, fullfile(save_path, filename_CO));
     close(gcf);
 
@@ -1139,15 +1145,15 @@ function plot_pac_results(pac_matrix, phase_freqs, amp_freqs, i, stage_name, cha
     clim([0, max_mi]);
     xlim([min(phase_freqs), max(phase_freqs)]);
     ylim([min(amp_freqs), max(amp_freqs)]);
-    filename_MI = sprintf('MI-PAC_subject%02d_%s.png', i, strrep(stage_name, ' ', '_'));
+    filename_MI = sprintf('MI-PAC_trial%02d_%s.png', i, strrep(stage_name, ' ', '_'));
     saveas(gcf, fullfile(save_path, filename_MI));
     close(gcf);
 end
 
-%% Bicoherence 
+%% Exploratory EEG-only bicoherence
 
 % 設置圖片存儲路徑
-save_path = 'C:\Users\USER\Desktop\大學專題\data\20241225\bicoherence';
+save_path = fullfile(paths.results_root, 'bicoherence');
 if ~exist(save_path, 'dir')
     mkdir(save_path);
 end
@@ -1206,7 +1212,7 @@ for stage_idx = 1:num_stage
     set(gca, 'YDir', 'normal');
     xlabel('f1 (Hz)');
     ylabel('f2 (Hz)');
-    title(sprintf('Bicoherence - Subject %d - %s (%s)', ...
+    title(sprintf('Bicoherence - Trial %d - %s (%s)', ...
         subject_idx,transient_stages_title{stage_idx} , ch_name));
     colorbar;
     clim([0 1]);  % 統一 colorbar 範圍為 [0, 1]
@@ -1214,7 +1220,7 @@ for stage_idx = 1:num_stage
     ylim([min(gamma_freqs), max(gamma_freqs)])
 
     % 儲存圖片（檔名不含空格）
-    filename = sprintf('Bicoherence_subject%d_%s.png', ...
+    filename = sprintf('Bicoherence_trial%d_%s.png', ...
          subject_idx,transient_stages{stage_idx});
     saveas(gcf, fullfile(save_path, filename));
     close(gcf);

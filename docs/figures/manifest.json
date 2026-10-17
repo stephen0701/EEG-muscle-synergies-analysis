@@ -1,0 +1,170 @@
+[
+  {
+    "source": "fig_5_1.jpeg",
+    "file": "vaf_delta_vaf.jpeg",
+    "sha256": "9f9831636e6b9f367913117f882120387622d48b1735795213f87288b69548b2",
+    "size": [
+      1108,
+      870
+    ],
+    "exif_fields": 0,
+    "metadata_keys": [
+      "jfif",
+      "jfif_version",
+      "dpi",
+      "jfif_unit",
+      "jfif_density",
+      "progressive",
+      "progression"
+    ],
+    "permission": "owner-authorized private portfolio inclusion, including figures with documented caveats",
+    "presentation": "unchanged original; corrections and limitations appear in adjacent English captions"
+  },
+  {
+    "source": "fig_5_2.jpeg",
+    "file": "synergy_matching_distance.jpeg",
+    "sha256": "3971268bdd3efeb67cb4d9717e13e8d2a46f16f82ed98904ee1f914e3ce90b0c",
+    "size": [
+      1178,
+      962
+    ],
+    "exif_fields": 0,
+    "metadata_keys": [
+      "jfif",
+      "jfif_version",
+      "dpi",
+      "jfif_unit",
+      "jfif_density",
+      "progressive",
+      "progression"
+    ],
+    "permission": "owner-authorized private portfolio inclusion, including figures with documented caveats",
+    "presentation": "unchanged original; corrections and limitations appear in adjacent English captions"
+  },
+  {
+    "source": "fig_5_3a.jpeg",
+    "file": "synergy_sts_30_45.jpeg",
+    "sha256": "a8bda847dbfc421579d3d1acef25b2afc59736f3d1ac107963118a34a617419b",
+    "size": [
+      1685,
+      856
+    ],
+    "exif_fields": 0,
+    "metadata_keys": [
+      "jfif",
+      "jfif_version",
+      "dpi",
+      "jfif_unit",
+      "jfif_density",
+      "progressive",
+      "progression"
+    ],
+    "permission": "owner-authorized private portfolio inclusion, including figures with documented caveats",
+    "presentation": "unchanged original; corrections and limitations appear in adjacent English captions"
+  },
+  {
+    "source": "fig_5_3b.jpeg",
+    "file": "synergy_stw_30_45.jpeg",
+    "sha256": "18c1639f3a0fceed218e16aa049e15cf5340d02c4d8e2d6b1b4b01e8842a6346",
+    "size": [
+      1686,
+      841
+    ],
+    "exif_fields": 0,
+    "metadata_keys": [
+      "jfif",
+      "jfif_version",
+      "dpi",
+      "jfif_unit",
+      "jfif_density",
+      "progressive",
+      "progression"
+    ],
+    "permission": "owner-authorized private portfolio inclusion, including figures with documented caveats",
+    "presentation": "unchanged original; corrections and limitations appear in adjacent English captions"
+  },
+  {
+    "source": "fig_5_4a.jpeg",
+    "file": "synergy_sts_lower_bands.jpeg",
+    "sha256": "ff8bace57eddb6a3c1c3bfe3e32efa362974871321a89859f583e028bfc43934",
+    "size": [
+      1687,
+      425
+    ],
+    "exif_fields": 0,
+    "metadata_keys": [
+      "jfif",
+      "jfif_version",
+      "dpi",
+      "jfif_unit",
+      "jfif_density",
+      "progressive",
+      "progression"
+    ],
+    "permission": "owner-authorized private portfolio inclusion, including figures with documented caveats",
+    "presentation": "unchanged original; corrections and limitations appear in adjacent English captions"
+  },
+  {
+    "source": "fig_5_4b.jpeg",
+    "file": "synergy_sts_higher_bands.jpeg",
+    "sha256": "275727a2574a253ffc70a17c50f74c50bc471a15efbef4c92b501375aa34a9c0",
+    "size": [
+      1688,
+      421
+    ],
+    "exif_fields": 0,
+    "metadata_keys": [
+      "jfif",
+      "jfif_version",
+      "dpi",
+      "jfif_unit",
+      "jfif_density",
+      "progressive",
+      "progression"
+    ],
+    "permission": "owner-authorized private portfolio inclusion, including figures with documented caveats",
+    "presentation": "unchanged original; corrections and limitations appear in adjacent English captions"
+  },
+  {
+    "source": "fig_5_5a.jpeg",
+    "file": "eeg_beta_topography.jpeg",
+    "sha256": "64fcc4fe60f9dc22d15fbc89806c00436d3d8f445e122b1154804dc5ed964192",
+    "size": [
+      1684,
+      444
+    ],
+    "exif_fields": 0,
+    "metadata_keys": [
+      "jfif",
+      "jfif_version",
+      "dpi",
+      "jfif_unit",
+      "jfif_density",
+      "progressive",
+      "progression"
+    ],
+    "permission": "owner-authorized private portfolio inclusion, including figures with documented caveats",
+    "presentation": "unchanged original; corrections and limitations appear in adjacent English captions"
+  },
+  {
+    "source": "fig_5_5b.jpeg",
+    "file": "eeg_low_gamma_topography.jpeg",
+    "sha256": "7714bc74167a1ca6f35c887359ed9f8965d9ee4624bef9ef07b2f6df4c77956d",
+    "size": [
+      1688,
+      483
+    ],
+    "exif_fields": 0,
+    "metadata_keys": [
+      "jfif",
+      "jfif_version",
+      "dpi",
+      "jfif_unit",
+      "jfif_density",
+      "progressive",
+      "progression"
+    ],
+    "permission": "owner-authorized private portfolio inclusion, including figures with documented caveats",
+    "presentation": "unchanged original; corrections and limitations appear in adjacent English captions"
+  }
+]

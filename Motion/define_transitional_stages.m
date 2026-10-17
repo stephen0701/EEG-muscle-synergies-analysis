@@ -1,9 +1,15 @@
-
+% RESEARCH NOTE: This archive contains section-based research scripts.
+% See docs/REPRODUCIBILITY.md before executing sections. Alternatives overwrite
+% shared variables; running the entire file is not a verified report pipeline.
+% Each legacy subject/subj index denotes a trial from ONE participant.
+repo_root = fileparts(fileparts(mfilename('fullpath')));
+addpath(repo_root, fullfile(repo_root, 'Function'));
+paths = research_paths();
 
 %% read sync_time_marker.npz 
 
 % 定義基礎路徑
-base_path = 'C:\Users\USER\Desktop\大學專題\data\20241225';
+base_path = paths.data_root;
 
 % 獲取所有符合 "path1_*" 格式的文件夾
 folders_info = dir(fullfile(base_path, 'path2_*'));
@@ -79,13 +85,13 @@ end
 %% Segmentation of transitional stages (sit to stand, stand to walk, walk to stop)
 
 % Load template
-load('C:\Users\USER\Desktop\大學專題\motion\result_template\result_template.mat');
+load(paths.motion_template);
 
 % 資料子目錄的前綴
 prefix = 'path2_';
 
 % 根目錄
-rootFolder = 'C:\Users\USER\Desktop\大學專題\data\20241225';
+rootFolder = paths.data_root;
 
 % 獲取所有子目錄的列表
 subdirs = dir(fullfile(rootFolder, [prefix '*']));
@@ -96,7 +102,7 @@ numFiles = length(subdirs);
 transient_results = cell(numFiles, 1); 
 timeOfvideo = cell(numFiles, 1); 
 
-output_folder = 'C:\Users\USER\Desktop\大學專題\data\20241225\transitional_stages(path2)';
+output_folder = fullfile(paths.results_root, 'transitional_stages_path2');
 if ~exist(output_folder, 'dir')
    mkdir(output_folder);
 end
@@ -154,8 +160,8 @@ for i = 1:numFiles
 end
 
 % 儲存 transient_results 結果
-%save('C:\Users\USER\Desktop\大學專題\data\20241225\transitional_results(path2).mat', 'transient_results', '-v7.3');
-disp('所有結果已儲存到C:\Users\USER\Desktop\大學專題\data\20241225\transitional_results(path2).mat');
+%save(fullfile(paths.results_root, 'transitional_results_path2.mat'), 'transient_results', '-v7.3');
+disp('Segmentation remains in transient_results; the optional save command is disabled.');
 %% Funciton list
 
 function data = trc_read(trc_dir)
@@ -557,3 +563,4 @@ for i = 1:numFiles
 end
 
 %%
+

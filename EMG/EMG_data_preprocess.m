@@ -1,9 +1,15 @@
-
+% RESEARCH NOTE: This archive contains section-based research scripts.
+% See docs/REPRODUCIBILITY.md before executing sections. Alternatives overwrite
+% shared variables; running the entire file is not a verified report pipeline.
+% Each legacy subject/subj index denotes a trial from ONE participant.
+repo_root = fileparts(fileparts(mfilename('fullpath')));
+addpath(repo_root, fullfile(repo_root, 'Function'));
+paths = research_paths();
 
 %% read data
 
 % 檔案資料夾路徑
-folder_path = "C:\Users\USER\Desktop\大學專題\data\20241225\path2";
+folder_path = paths.trial_folder;
 
 % 取得 eeg_path1_*.csv 檔案
 files = dir(fullfile(folder_path, 'EMG_path2_*.csv'));
@@ -392,7 +398,7 @@ for band_idx = 1:4
     plot_frequency_response(raw_data, processed_data, ch_list, fs, legend_names, band_label);
 end
 
-%% envelope (Lowpass after rectification)
+%% Exploratory envelope: squared rectification and low-pass filtering
 
 % 定義電極名稱
 ch_list =  {'LGA', 'RGA', 'LTA', 'RTA', 'LBF', 'RBF', 'LRF', 'RRF'};
@@ -445,7 +451,7 @@ for band_idx = 1:4
     plot_all_channels(raw_data, processed_data, ch_list, fs, legend_names, band_label);
 end
 
-%% envelope (Hilbert transform)
+%% Report-described Hilbert envelope (review transform dimension before reproduction)
 
 % 定義電極名稱
 ch_list =  {'LGA', 'RGA', 'LTA', 'RTA', 'LBF', 'RBF', 'LRF', 'RRF'};
@@ -492,7 +498,7 @@ for band_idx = 1:4
     plot_all_channels(raw_data, processed_data, ch_list, fs, legend_names, band_label);
 end
 
-%% envelope (RMS) 
+%% Alternative RMS envelope (overwrites the Hilbert envelope if executed)
 
 % 定義電極名稱
 ch_list =  {'LGA', 'RGA', 'LTA', 'RTA', 'LBF', 'RBF', 'LRF', 'RRF'};
@@ -606,7 +612,7 @@ fs = 1000;
 channel_names = {'LGA', 'RGA', 'LTA', 'RTA', 'LBF', 'RBF', 'LRF', 'RRF'};
 
 % 設置保存圖片的路徑
-save_path = 'C:\Users\USER\Desktop\大學專題\data\20241009\envelope'; 
+save_path = fullfile(paths.results_root, 'envelope');
 
 % 定義 numLHSdata 和 numRHSdata
 numLHSdata = numel(LHS_data);  % 確認 LHS_data 是 cell 
@@ -894,7 +900,7 @@ band_label = sprintf('%d–%d Hz', freq_bands{1}(1), freq_bands{1}(2));
         grid on;
     end
 
-%% non-negative matrix factorization (NMF) & VAF using sparsenmfnnls 
+%% NMF alternative A: sparsenmfnnls (choose one NMF section)
 
 % 設定 K 值範圍
 k_range = 1:8; % 肌肉通常 synergy 是 2-6
@@ -968,7 +974,7 @@ for i = 1:length(EMG_data)
     end
 end
 
-%% non-negative matrix factorization (NMF) & VAF using nmfnnls
+%% NMF alternative B: nmfnnls (overwrites alternative A if executed)
 
 % 設定 K 值範圍
 k_range = 1:8; % 肌肉通常 synergy 是 2-6
@@ -1073,6 +1079,8 @@ for i = 1:length(EMG_data)
                 shuffled = VAF_per_k(randperm(length(VAF_per_k)));
                 all_deltas = [all_deltas, diff(shuffled)];
             end
+            % Original heuristic retained. This is NOT a 75th percentile.
+            % The report/code discrepancy is documented in docs/METHODS.md.
             threshold_deltaVAF = abs(0.75 * median(all_deltas));
             threshold_deltaVAF_all{i}(j, k) = threshold_deltaVAF;
 
@@ -1166,7 +1174,7 @@ end
 k_range = 1:8;
 
 % 設置保存圖片的路徑
-save_path = 'C:\Users\USER\Desktop\大學專題\data\20241225\EMG synergy vs VAF'; 
+save_path = fullfile(paths.results_root, 'EMG_synergy_vs_VAF');
 
 % 確保資料夾存在
 if ~exist(save_path, 'dir')
@@ -1244,7 +1252,7 @@ for subj = 1:length(VAF_results)
             xticks(k_range(2:end));
             xticklabels(delta_labels);  % 用 K→K+1 的文字作為 x 軸
             grid on;
-            legend(hline2, sprintf('75%% shuffled (%.4f)', threshold_deltaVAF), 'Location', 'northeast');
+            legend(hline2, sprintf('Shuffle heuristic (%.4f)', threshold_deltaVAF), 'Location', 'northeast');
 
             % 主標題
             sgtitle(sprintf('path2_%02d - %s - %d-%d Hz' ,  ...
@@ -1266,10 +1274,10 @@ for subj = 1:length(VAF_results)
     end
 end
 
-%% Classify muscle synergy
+%% Match repeated-trial synergies: cosine k-means and one-to-one matching
 
 % 設置保存圖片的路徑
-save_path = 'C:\Users\USER\Desktop\大學專題\data\20241225\EMG synergy distance martix(path2)';
+save_path = fullfile(paths.results_root, 'EMG_synergy_distance_matrix_path2');
 
 % 確保資料夾存在
 if ~exist(save_path, 'dir')
@@ -1313,7 +1321,7 @@ for clip = 1:length(transient_stages)
         for i = 1:length(best_nmf)
             if isempty(best_nmf{i}) || isempty(best_nmf{i}{band, clip}) || ...
                ~isfield(best_nmf{i}{band, clip}, 'A') || ~isfield(best_nmf{i}{band, clip}, 'Y')
-                fprintf('Subject %d 無 band=%d clip=%d 的 best_nmf 資料，跳過。\n', ...
+                fprintf('Trial %d 無 band=%d clip=%d 的 best_nmf 資料，跳過。\n', ...
                     i, band, clip);
                 continue;
             end
@@ -1322,7 +1330,7 @@ for clip = 1:length(transient_stages)
             Y = best_nmf{i}{band, clip}.Y;
 
             if isempty(A) || size(A, 2) ~= common_K
-                fprintf('Subject %d 的 A 大小不符合 common_K，跳過。\n', i);
+                fprintf('Trial %d 的 A 大小不符合 common_K，跳過。\n', i);
                 continue;
             end
 
@@ -1409,7 +1417,7 @@ for clip = 1:length(transient_stages)
         title(title_str, 'FontSize', 12);
 
         xlabel('Consensus Synergies');
-        ylabel('Subject Synergies');
+        ylabel('Trial Synergies');
         set(gca, 'XTick', 1:common_K, 'YTick', 1:common_K);
 
         % 儲存圖檔
@@ -1424,7 +1432,7 @@ end
 %% Plot Synergy Coefficient（A） & Synergy Activation Pattern（Y） 
 
 % 儲存圖檔的資料夾路徑
-save_folder = 'C:\Users\USER\Desktop\大學專題\data\20241225\EMG_synergy_individual';
+save_folder = fullfile(paths.results_root, 'EMG_synergy_individual');
 if ~exist(save_folder, 'dir')
     mkdir(save_folder);
 end
@@ -1461,12 +1469,12 @@ for stage_idx = 1:length(transient_stages)
 
             % 檢查資料有效性
             if isempty(A) || isempty(Y)
-                fprintf('Subject %d 無資料，跳過。\n', subj_idx);
+                fprintf('Trial %d 無資料，跳過。\n', subj_idx);
                 continue;
             end
 
             if size(A, 1) ~= length(muscle_labels) || size(A, 2) ~= common_K || size(Y, 1) ~= common_K
-                fprintf('Subject %d A 或 Y 維度與 K=%d 不符，跳過。\n', subj_idx, common_K);
+                fprintf('Trial %d A 或 Y 維度與 K=%d 不符，跳過。\n', subj_idx, common_K);
                 continue;
             end
 
@@ -1504,12 +1512,12 @@ for stage_idx = 1:length(transient_stages)
                 grid on;
             end
 
-            sgtitle(sprintf('Subject %02d - %s - %d-%d Hz - K=%d', ...
+            sgtitle(sprintf('Trial %02d - %s - %d-%d Hz - K=%d', ...
                 subj_idx, stage_name, freq_range(1), freq_range(2), common_K), ...
                 'Interpreter', 'none');
 
             % 儲存圖片
-            save_filename = sprintf('Subject%02d_%s_%d-%dHz.png', ...
+            save_filename = sprintf('Trial%02d_%s_%d-%dHz.png', ...
                 subj_idx, strrep(stage_name, ' ', '_'), freq_range(1), freq_range(2));
             save_path = fullfile(save_folder, save_filename);
             saveas(gcf, save_path);
@@ -1521,7 +1529,7 @@ end
 %% Plot Average Synergy Coefficient（A） &  Average Synergy Activation Pattern（Y） 
 
 % 儲存圖檔的資料夾路徑
-save_folder = 'C:\Users\USER\Desktop\大學專題\data\20241225\EMG synergy A&Y(path2)';
+save_folder = fullfile(paths.results_root, 'EMG_synergy_A_Y_path2');
 if ~exist(save_folder, 'dir')
     mkdir(save_folder);
 end
@@ -1560,12 +1568,12 @@ for stage_idx = 1:length(transient_stages)
             Y = EMG_data{i}.reordered.Y{band_idx, clip};
 
             if isempty(A) || isempty(Y)
-                fprintf('Subject %d 無資料，跳過。\n', i);
+                fprintf('Trial %d 無資料，跳過。\n', i);
                 continue;
             end
 
             if size(A, 1) ~= length(muscle_labels) || size(A, 2) ~= common_K || size(Y, 1) ~= common_K
-                fprintf('Subject %d A 或 Y 維度與 K=%d 不符，跳過。\n', i, common_K);
+                fprintf('Trial %d A 或 Y 維度與 K=%d 不符，跳過。\n', i, common_K);
                 continue;
             end
 
@@ -1637,7 +1645,7 @@ for stage_idx = 1:length(transient_stages)
             grid on;
         end
 
-        sgtitle(sprintf('Average - %s - %d-%d Hz - K=%d - N=%d subjects', ...
+        sgtitle(sprintf('Average - %s - %d-%d Hz - K=%d - N=%d trials (one participant)', ...
             stage_name, freq_range(1), freq_range(2), common_K, length(subject_indices)), ...
             'Interpreter', 'none');
 
@@ -1669,7 +1677,7 @@ freq_bands = {
 fs = 1000;
 
 % 儲存路徑
-output_folder = 'C:\Users\USER\Desktop\大學專題\data\20241225\spectrogram';
+output_folder = fullfile(paths.results_root, 'spectrogram');
 if ~exist(output_folder, 'dir')
     mkdir(output_folder);
 end
@@ -1773,7 +1781,7 @@ end
 %% stft
 
 % 輸出資料夾
-output_folder_stft = 'C:\Users\USER\Desktop\時頻圖_stft';
+output_folder_stft = fullfile(paths.results_root, 'stft');
 if ~exist(output_folder_stft, 'dir')
     mkdir(output_folder_stft);
 end
@@ -1861,5 +1869,6 @@ for band = 1:size(freq_bands, 1)
 end
 
 %%
+
 
 
