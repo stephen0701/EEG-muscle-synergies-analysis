@@ -26,7 +26,7 @@ flowchart LR
     Power --> Compare
 ```
 
-The report describes Hilbert envelopes, resampling from 1000 to 500 Hz, nonnegative normalization, NMF (`V ≈ WH`), VAF-based selection, cosine-distance k-means, and one-to-one matching. **The archived script includes alternatives that overwrite shared variables, and its shuffle threshold differs from the report description.** [Methods](docs/METHODS.md) records the implemented formulas and unresolved issues. Numerical methods were preserved during portfolio preparation.
+The analysis combines envelope extraction, resampling from 1000 to 500 Hz, nonnegative normalization, NMF (`V ≈ WH`), VAF-based selection, cosine-distance k-means, and one-to-one matching. The owner clarified that count selection uses the archived **median-based shuffle heuristic**, and the report's 75th-percentile wording needs correction. The script still contains envelope/NMF alternatives that overwrite shared variables. [Methods](docs/METHODS.md) records the formulas and remaining reproduction issues; numerical calculations were preserved.
 
 ## Findings and evidence
 
@@ -43,6 +43,16 @@ L/R = left/right; GA = gastrocnemius, TA = tibialis anterior, BF = biceps femori
 
 ### Representative figures
 
+**Figure-label correction:** the original synergy figures below say “N=10 subjects.” They summarize **10 trials from one participant**. Error bars describe across-trial SD. The original image bytes are retained; this correction applies to their titles and interpretation.
+
+![STS muscle synergy coefficients and activation profiles at 30-45 Hz, across ten trials from one participant](docs/figures/synergy_sts_30_45.jpeg)
+
+**STS synergies at 30-45 Hz (source Fig. 5.3a).** The three rows pair muscle coefficients with activation profiles on normalized movement time. The figure illustrates the reported LTA/RTA/LBF and RBF/LRF/RRF co-activation patterns within this case study.
+
+![STW muscle synergy coefficients and activation profiles at 30-45 Hz, across ten trials from one participant](docs/figures/synergy_stw_30_45.jpeg)
+
+**STW synergies at 30-45 Hz (source Fig. 5.3b).** Together with the STS figure, this supports the descriptive LTA/RTA/LBF observation. Synergy numbers are figure-specific and do not by themselves establish identical modules across movement phases.
+
 ![Beta EEG scalp-power maps for STS, STW, and WTS](docs/figures/eeg_beta_topography.jpeg)
 
 **Beta topography (13-30 Hz; source Fig. 5.5a).** Columns show STS, STW, and WTS. The figure uses a shared scale within this band. These are descriptive power visualizations; no calibrated physical power unit or significance is asserted.
@@ -51,7 +61,7 @@ L/R = left/right; GA = gastrocnemius, TA = tibialis anterior, BF = biceps femori
 
 **Low Gamma topography (32-46 Hz; source Fig. 5.5b).** Its color scale differs from the Beta figure; do not compare the bands numerically using these scales. Visual correspondence does not demonstrate corticomuscular coupling.
 
-Supplied synergy-average figures were excluded because their titles incorrectly state “10 subjects.” The plotting source now labels repeated trials from one participant. [Figure provenance](docs/FIGURES.md) records all selections and exclusions.
+The [complete results gallery](docs/RESULTS.md) also includes VAF/ΔVAF selection, matching distances, and all four STS frequency bands, with corrections and analysis caveats beside the original figures. [Figure provenance](docs/FIGURES.md) records source identities and checksums.
 
 ## Repository guide
 
@@ -62,6 +72,7 @@ Supplied synergy-average figures were excluded because their titles incorrectly 
 | [Motion/define_transitional_stages.m](Motion/define_transitional_stages.m) | Motion-derived timing and EEG/EMG phase segmentation |
 | [Function/](Function/) | Shared diagnostic plotting helpers |
 | [research_paths.m](research_paths.m) | Configured private inputs and local output paths |
+| [docs/RESULTS.md](docs/RESULTS.md) | Complete figure gallery with interpretation and corrections |
 | [docs/REPRODUCIBILITY.md](docs/REPRODUCIBILITY.md) | Requirements, data contract, section order, and reproduction limits |
 
 The established source folders are retained because the scripts share workspace variables. The root PDF remains legacy reference material and has not been cleared for public release; see [Data and publication](docs/DATA_AND_PUBLICATION.md).
@@ -75,7 +86,7 @@ These scripts require section-by-section review. There is no verified end-to-end
 ## Limitations and future work
 
 - Ten repeated trials from one participant cannot support between-participant generalization.
-- Envelope selection, Hilbert dimension, NMF variant, shuffle criterion, and missing dependencies must be resolved before exact reproduction can be claimed.
+- Envelope selection, Hilbert dimension, NMF variant, and missing dependencies must be resolved before exact reproduction can be claimed. The shuffle criterion has been clarified by the owner and is documented explicitly.
 - Unseeded randomization, phase alignment, and preprocessing affect the extracted modules. No new statistical significance or clinical efficacy is claimed.
 - Quantitative EEG-synergy coupling and broader participant validation remain future work.
 

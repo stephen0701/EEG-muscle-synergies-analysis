@@ -6,6 +6,12 @@ Source inspection covered all six original text files, including the NMF and mat
 
 MATLAB R2024a was installed, but initial startup failed with `failed to load settings errors_warnings plugin`; retrying with a workspace preference directory failed to communicate with required MathWorks services (5201). Consequently MATLAB Code Analyzer, the new path helper's runtime check, and end-to-end MATLAB execution were **not completed**. No MATLAB pass is implied by source inspection.
 
-Local Markdown links, original machine-path removal, selected image hashes, and diff whitespace are checked during handoff. The two included images were visually inspected for band/phase labels and copied without editing; they were not regenerated. The missing montage prevents independent anatomical orientation verification.
+Local Markdown links, original machine-path removal, image hashes, and diff whitespace are checked during handoff. All eight supplied Chapter 5 figures are now included, copied without editing or regeneration. Their visible labels were inspected; adjacent captions correct subjects/trials and the shuffle-threshold description. The missing montage prevents independent anatomical orientation verification.
+
+## Figure-restoration clarification
+
+The owner confirmed that the archived median-based shuffle heuristic is the intended method and the report's 75th-percentile wording needs correction. The owner also confirmed that all ten trials contributed to Fig. 5.2. These statements resolve the documentation questions; they do not substitute for an independent data reanalysis. STS/STW synergy examples are shown on the README, with all eight figures in [Results](RESULTS.md).
+
+The restoration revision changes documentation and figure assets only. Analysis source files, numerical parameters, and original image bytes are unchanged from the preceding portfolio revision. Existing software-check results were not represented as newly rerun analyses.
 
 No source recordings, saved NMF results, or original random/ICA logs were available. Report findings are faithful transcriptions from the supplied brief, not independently reproduced results. The pre-existing PDF remains unreviewed. See [Methods](METHODS.md) and [Data/publication](DATA_AND_PUBLICATION.md).
