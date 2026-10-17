@@ -1,0 +1,42 @@
+[
+  {
+    "source": "fig_5_5a.jpeg",
+    "sha256": "64fcc4fe60f9dc22d15fbc89806c00436d3d8f445e122b1154804dc5ed964192",
+    "size": [
+      1684,
+      444
+    ],
+    "exif_fields": 0,
+    "metadata_keys": [
+      "jfif",
+      "jfif_version",
+      "dpi",
+      "jfif_unit",
+      "jfif_density",
+      "progressive",
+      "progression"
+    ],
+    "file": "eeg_beta_topography.jpeg",
+    "permission": "owner-authorized private portfolio inclusion"
+  },
+  {
+    "source": "fig_5_5b.jpeg",
+    "sha256": "7714bc74167a1ca6f35c887359ed9f8965d9ee4624bef9ef07b2f6df4c77956d",
+    "size": [
+      1688,
+      483
+    ],
+    "exif_fields": 0,
+    "metadata_keys": [
+      "jfif",
+      "jfif_version",
+      "dpi",
+      "jfif_unit",
+      "jfif_density",
+      "progressive",
+      "progression"
+    ],
+    "file": "eeg_low_gamma_topography.jpeg",
+    "permission": "owner-authorized private portfolio inclusion"
+  }
+]
