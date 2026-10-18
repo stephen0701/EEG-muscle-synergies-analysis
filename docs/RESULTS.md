@@ -1,5 +1,7 @@
 # Results and figure gallery
 
+[README](../README.md) · [Methods](METHODS.md) · [Results](RESULTS.md) · [Reproduction](REPRODUCIBILITY.md) · [Project notes](PROJECT_NOTES.md)
+
 This gallery preserves all eight supplied Chapter 5 figures. They are report-era case-study illustrations, not regenerated outputs. The owner confirmed that the study comprises ten trials from one participant, the archived median-based shuffle heuristic is the intended method, and all ten trials contributed to the matching matrix. These clarifications are owner statements, not an independent data reanalysis.
 
 ## 1. Synergy-count selection

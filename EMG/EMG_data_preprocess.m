@@ -6,30 +6,30 @@ repo_root = fileparts(fileparts(mfilename('fullpath')));
 addpath(repo_root, fullfile(repo_root, 'Function'));
 paths = research_paths();
 
-%% read data
+%% Import recording data
 
-% 檔案資料夾路徑
+% Input data directory.
 folder_path = paths.trial_folder;
 
-% 取得 eeg_path1_*.csv 檔案
+% Find matching EEG CSV exports.
 files = dir(fullfile(folder_path, 'EMG_path2_*.csv'));
 
-% 預先分配 cell array 來儲存每個檔案的數據
+% Preallocate a cell array for the imported files.
 EMG_data = cell(1, numel(files));
 
-% 讀取每個檔案的數據並儲存至 cell array 中
+% Read each file into the cell array.
 for i = 1:numel(files)
     try
-        % 組合完整檔案路徑
+        % Construct the full file path.
         file_path = fullfile(files(i).folder, files(i).name);
         
-        % 使用 readtable 函數讀取 CSV 檔案
+        % Read the CSV file with readtable.
         EMG_data_table = readtable(file_path, 'VariableNamingRule', 'preserve');
         
-        % table 轉成 array 並儲存到 cell array 中
+        % Convert the table to an array and store it.
         EMG_data{i}.original = table2array(EMG_data_table);
         
-        % 預設其他欄位為空
+        % Initialize the remaining fields as empty.
         EMG_data{i}.alignment = [];
         EMG_data{i}.detrend = [];
         EMG_data{i}.notchfilter = [];
@@ -40,53 +40,53 @@ for i = 1:numel(files)
         EMG_data{i}.normalize  = [];     
         
     catch ME
-        % 捕捉錯誤並顯示錯誤訊息
+        % Report the error and continue.
         warning('Error reading file %s: %s', files(i).name, ME.message);
     end
 end
 
-% 顯示已成功讀取的檔案數量
+% Report the number of imported files.
 num_files_read = sum(cellfun(@(x) ~isempty(x.original), EMG_data));
 disp(['已成功讀取 ', num2str(num_files_read), ' 個檔案。']);
 
-%% data alignment (linear interpolate for missing data)
-% 記得更改 end_idx - start_idx 的範圍（先查看資料長度）
+%% Align recordings and interpolate missing samples
+% Check the recording length before changing the start/end index range.
 
 n1 = 11; % event id column
 n2 = 14; % software id column
 serial_number = 2; % serial number column
-start_event = 130; % 紅燈亮
-end_event = 141; % 綠燈暗
-columns_to_process = 3:10; % 指定要處理的列
+start_event = 130; % Red-light onset.
+end_event = 141; % Green-light offset.
+columns_to_process = 3:10; % Select columns to process.
 
-% 保存不連續數據的 cell array
+% Store discontinuous portions for inspection.
 non_continuous_data = {};
 
-% 初始化 start_indices 和 end_indices
+% Initialize the start and end indices.
 num_files = numel(EMG_data);
-start_indices = nan(1, num_files); % 使用 NaN 預分配
-end_indices = nan(1, num_files);   % 使用 NaN 預分配
+start_indices = nan(1, num_files); % Preallocate with NaN.
+end_indices = nan(1, num_files);   % Preallocate with NaN.
 
-% 對每個檔案進行數據對齊
+% Align each recording.
 for i = 1:num_files
     try
-        EMG_data_array = EMG_data{i}.original;  % 從 cell array 中提取數據
+        EMG_data_array = EMG_data{i}.original;  % Extract the array from the cell.
 
-        % 確保數據存在
+        % Check that the data are available.
         if isempty(EMG_data_array)
             disp(['檔案無效或未讀取成功: ', files(i).name]);
-            continue;  % 跳過此檔案，繼續處理下一個
+            continue;  % Skip this file and continue.
         end
 
-        % 使用 n1 尋找 start 和 end index
+        % Find start and end indices using n1.
         logical_start = EMG_data_array(:, n1) == start_event;
         logical_end = EMG_data_array(:, n1) == end_event;
 
-        % 找到第一個和最後一個符合條件的索引
+        % Locate the first and last matching indices.
         start_idx = find(logical_start, 1);
         end_idx = find(logical_end, 1, 'last');
 
-        % 如果 n1 找不到 start 或 end，使用 n2 再試一次
+        % Retry with n2 when n1 has no start or end match.
         if isempty(start_idx) || isempty(end_idx)
             %(end_idx - start_idx < 11000) || (end_idx - start_idx > 13000)
             disp(['event id 找不到有效的索引，使用 software marker: ', files(i).name]);
@@ -96,46 +96,46 @@ for i = 1:num_files
             end_idx = find(logical_end, 1, 'last');
         end
 
-        % 確保找到 start 和 end index
+        % Check that both boundary indices were found.
         if isempty(start_idx) || isempty(end_idx)
             %(end_idx - start_idx < 11000) || (end_idx - start_idx > 13000)
             disp(['無法找到有效的開始或結束索引: ', files(i).name]);
-            continue;  % 跳過此檔案，繼續處理下一個
+            continue;  % Skip this file and continue.
         end
 
-        % 保存 start_idx 和 end_idx 到相應位置
+        % Store the start and end indices.
         start_indices(i) = start_idx;
         end_indices(i) = end_idx;
 
-        % 提取從第一個130到最後一個141之間的數據
+        % Extract data from the first event 130 to the last event 141.
         aligned_data = EMG_data_array(start_idx:end_idx, :);
         EMG_data{i}.alignment = aligned_data;
 
-        % 檢查第二列（serial_number）的連續性
+        % Check continuity in column 2 (serial_number).
         serial_col = aligned_data(:, serial_number);
-        discontinuities = find(diff(serial_col) ~= 1); % 找到不連續點
+        discontinuities = find(diff(serial_col) ~= 1); % Locate discontinuities.
 
         if ~isempty(discontinuities)
-            % 保存不連續部分的數據
-            non_continuous_data{i} = aligned_data(discontinuities + 1, :); % 提取不連續的行
+            % Store the discontinuous data.
+            non_continuous_data{i} = aligned_data(discontinuities + 1, :); % Extract the rows at discontinuities.
             disp(['發現不連續數據: ', files(i).name]);
 
-            % 插值補齊不連續點
-            full_range = (min(serial_col):max(serial_col))';  % 應該有的完整範圍
-            missing_points = setdiff(full_range, serial_col);  % 找到缺失的點
+            % Interpolate missing samples.
+            full_range = (min(serial_col):max(serial_col))';  % Construct the expected complete index range.
+            missing_points = setdiff(full_range, serial_col);  % Find missing indices.
 
-            % 打印缺失點
+            % Print the missing indices.
             if ~isempty(missing_points)
                 disp(['缺少: ', num2str(missing_points')]);
             end
 
             if ~isempty(missing_points)
-                % 建立包含完整範圍的表格
+                % Create a table spanning the complete index range.
                 complete_data = nan(numel(full_range), size(aligned_data, 2));
                 complete_data(ismember(full_range, serial_col), :) = aligned_data;
 
-                % 對第 1 列到第 8列數據進行線性插值
-                for col = 1:8  % 只處理第 1 列到第 8列
+                % Linearly interpolate columns 1 through 8.
+                for col = 1:8  % Process columns 1 through 8 only.
                     valid_idx = ~isnan(complete_data(:, col));
                     if sum(valid_idx) < 2
                         disp(['警告: 檔案 ', files(i).name, ' 的列 ', num2str(col), ' 沒有足夠的有效數據進行插值。']);
@@ -148,28 +148,28 @@ for i = 1:num_files
                 EMG_data{i}.alignment = complete_data;
                 disp(['已對檔案插值補齊缺失數據: ', files(i).name]);
                 
-                % 設定容忍度（此處設定為 1，允許約 ±1 的差異）
+                % Set the continuity tolerance to approximately one index step.
                 tolerance = 1;
 
-                % 檢查插值是否成功（僅檢查 serial_number 列的連續性，允許容忍度）
+                % Check interpolated serial-number continuity within the tolerance.
                 serial_col_interpolated = complete_data(:, serial_number);
-                discontinuities = find(abs(diff(serial_col_interpolated) - 1) > tolerance);  % 找到超出容忍範圍的不連續點
+                discontinuities = find(abs(diff(serial_col_interpolated) - 1) > tolerance);  % Find discontinuities exceeding the tolerance.
 
                 if isempty(discontinuities)
                     disp(['檔案 ', files(i).name, ' 插值成功，缺失點已補上。']);
                 else
                     disp(['檔案 ', files(i).name, ' 插值失敗，以下為不連續點的索引位置:']);
-                    disp(discontinuities + 1);  % 顯示不連續點的位置（+1 表示實際行數）
+                    disp(discontinuities + 1);  % Report discontinuity positions using the corresponding row indices.
                 end
 
             end
         end
     
-    % 儲存時間數據
+    % Store the time vector.
     time_EMG{i} = cell(1, numel(files));
     time_EMG{i} = EMG_data{i}.alignment(:,1);
 
-    % 只留下channel的部分    
+    % Retain channel columns only.
     EMG_data{i}.alignment = EMG_data{i}.alignment(:,columns_to_process);
     
     catch ME
@@ -177,11 +177,11 @@ for i = 1:num_files
     end
 end
 
-% 顯示已成功對齊的檔案數量
+% Report the number of aligned files.
 num_files_aligned = sum(~isnan(start_indices));
 disp(['已成功對齊 ', num2str(num_files_aligned), ' 個檔案。']);
 
-% 顯示每個 EMG_data.alignment 的 array 
+% Report each EMG alignment array's dimensions.
 for i = 1:num_files
     if isfield(EMG_data{i}, 'alignment') && ~isempty(EMG_data{i}.alignment)
         [rows, cols] = size(EMG_data{i}.alignment);
@@ -191,25 +191,25 @@ for i = 1:num_files
     end
 end
 
-%% detrend
+%% Detrend signals
 
-% 定義電極名稱
+% Define electrode names.
 ch_list =  {'LGA', 'RGA', 'LTA', 'RTA', 'LBF', 'RBF', 'LRF', 'RRF'};
 
-% 取樣頻率
+% Sampling frequency.
 fs = 1000;
 
-% 設定圖例名稱
+% Define legend labels.
 legend_names = {'Alignment data', 'Detrend data'};
 
-% 對每個檔案進行 detrend 操作
+% Detrend each recording.
 for i = 1:numel(EMG_data)
 
     try
-        % 確保文件包含 alignment 且不為空
+        % Check for nonempty aligned data.
         if isfield(EMG_data{i}, 'alignment') && ~isempty(EMG_data{i}.alignment)
 
-        % 進行 detrend 
+        % Apply detrending.
         EMG_data{i}.detrend = detrend(EMG_data{i}.alignment);
             
         else
@@ -217,44 +217,44 @@ for i = 1:numel(EMG_data)
         end
 
     catch ME
-        % 捕捉錯誤並顯示錯誤訊息
+        % Report the error and continue.
         warning('Error detrend in file %s: %s', files(i).name, ME.message);
     end
 
 end
 
-% 顯示已成功進行 detrend 處理的檔案數量
+% Report the number of detrended files.
 num_files_detrended = sum(cellfun(@(x) isfield(x, 'detrend') && ~isempty(x.detrend), EMG_data));
 disp(['已成功對 ', num2str(num_files_detrended), ' 個檔案進行 detrend 處理。']);
 
-% 畫圖檢查結果
+% Inspect the processing results.
 raw_data = EMG_data{1, 1}.alignment;
 processed_data = EMG_data{1, 1}.detrend;
 plot_all_channels(raw_data, processed_data, ch_list, fs, legend_names);
 
-%% notch filter
+%% Apply notch filtering
 
-% 定義電極名稱
+% Define electrode names.
 ch_list =  {'LGA', 'RGA', 'LTA', 'RTA', 'LBF', 'RBF', 'LRF', 'RRF'};
 
-% 取樣頻率
+% Sampling frequency.
 fs = 1000;
 
-% 設定圖例名稱
+% Define legend labels.
 legend_names = {'Detrend data', 'Notch filter data'};
 
-% 設計 notch 濾波器
+% Design the notch filter.
 fs = 1000; % sample rate
-fc = 60; % 濾波器中心頻率 60Hz (範圍 59-61)
+fc = 60; % 60 Hz notch center frequency; 59-61 Hz interval.
 [b, a] = designNotchPeakIIR('CenterFrequency', fc/(fs/2), 'Bandwidth', 2/(fs/2), 'Response', 'notch');
 
-% 對每個檔案進行 notch 濾波器操作
+% Apply notch filtering to each recording.
 for i = 1:numel(EMG_data)
     try
-        % 檢查 detrend 數據是否存在
+        % Check that detrended data are available.
         if isfield(EMG_data{i}, 'detrend') && ~isempty(EMG_data{i}.detrend)
                    
-        % 對指定列用 notch 濾波器，並將結果存入 EMG_data.notchfilter 
+        % Filter selected columns and store the EMG notch-filtered data.
         EMG_data{i}.notchfilter = filtfilt(b, a, EMG_data{i}.detrend);
                    
         else
@@ -262,50 +262,50 @@ for i = 1:numel(EMG_data)
         end
         
     catch ME
-        % 捕捉錯誤並顯示錯誤訊息
+        % Report the error and continue.
         warning('Error applying notch filter to file %d: %s', i, ME.message);
     end
 end
 
-% 顯示已成功進行 notch filter 處理的檔案數量
+% Report the number of notch-filtered files.
 num_files_notchfiltered = sum(cellfun(@(x) isfield(x, 'notchfilter') && ~isempty(x.notchfilter), EMG_data));
 disp(['已成功對 ', num2str(num_files_notchfiltered), ' 個檔案進行 notch filter 處理。']);
 
-% 畫圖檢查結果
+% Inspect the processing results.
 raw_data = EMG_data{1, 1}.detrend;
 processed_data = EMG_data{1, 1}.notchfilter;
 plot_frequency_response(raw_data, processed_data, ch_list, fs, legend_names);
 
 %{
-%% butterworth filter
+%% Apply Butterworth bandpass filtering
 
-% 定義電極名稱
+% Define electrode names.
 ch_list =  {'LGL', 'RGL', 'LTA', 'RTA', 'LBF', 'RBF', 'LRF', 'RRF'};
 
-% 取樣頻率
+% Sampling frequency.
 fs = 1000;
 
-% 設定圖例名稱
+% Define legend labels.
 legend_names = {'Notch filter data', 'Butterworth filter data'};
 
-% 設定濾波器
+% Configure the filter.
 filter_type = 'Butterworth filter';
 
-% 設計 Butterworth 濾波器
-order = 4; % 濾波器階數  
+% Design the Butterworth filter.
+order = 4; % Filter order.
 fs = 1000; % sample rate
-fc_low = 40; % 低截止頻率
-fc_high = 450; % 高截止頻率
-Wn = [fc_low/(fs/2), fc_high/(fs/2)]; % 歸一化截止頻率
-[b, a] = butter(order, Wn, 'bandpass'); % 設計帶通濾波器
+fc_low = 40; % Lower cutoff frequency.
+fc_high = 450; % Upper cutoff frequency.
+Wn = [fc_low/(fs/2), fc_high/(fs/2)]; % Normalized cutoff frequencies.
+[b, a] = butter(order, Wn, 'bandpass'); % Design the bandpass filter.
 
-% 對每個檔案進行 butterworth  濾波器操作
+% Apply Butterworth filtering to each recording.
 for i = 1:numel(EMG_data)
     try
-        % 檢查 notchfilter 數據是否存在
+        % Check that notch-filtered data are available.
         if isfield(EMG_data{i}, 'notchfilter') && ~isempty(EMG_data{i}.notchfilter)
 
-        % 對指定列用 butterworth 濾波器，並將結果存入 EEG_data.butterworthfilter 對應的列
+        % Store the Butterworth-filtered data in the specified field.
         EMG_data{i}.butterworthfilter = filtfilt(b, a, EMG_data{i}.notchfilter);
         
         else
@@ -313,33 +313,33 @@ for i = 1:numel(EMG_data)
         end
         
     catch ME
-        % 捕捉錯誤並顯示錯誤訊息
+        % Report the error and continue.
         warning('Error applying butterworth filter to file %d: %s', i, ME.message);
     end
 end
 
-% 顯示已成功進行 butterworth filter 處理的檔案數量
+% Report the number of Butterworth-filtered files.
 num_files_butterworthfiltered = sum(cellfun(@(x) isfield(x, 'butterworthfilter') && ~isempty(x.butterworthfilter), EMG_data));
 disp(['已成功對 ', num2str(num_files_butterworthfiltered), ' 個檔案進行 butterworth filter 處理。']);
 
-% 畫圖檢查結果
+% Inspect the processing results.
 raw_data = EMG_data{1, 1}.notchfilter;
 processed_data = EMG_data{1, 1}.butterworthfilter;
 plot_frequency_response(raw_data, processed_data, ch_list, fs, legend_names);
 %}
 
-%% frequency division
+%% Separate EMG frequency bands
 
-% 定義電極名稱
+% Define electrode names.
 ch_list =  {'LGA', 'RGA', 'LTA', 'RTA', 'LBF', 'RBF', 'LRF', 'RRF'};
 
-% 取樣頻率
+% Sampling frequency.
 fs = 1000;
 
-% 設定圖例名稱
+% Define legend labels.
 legend_names = {'Notch filter data', 'frequency division data'};
 
-% 頻段定義（單位：Hz）
+% Frequency bands in Hz.
 freq_bands = {
     [10, 30],       
     [30, 45], 
@@ -347,30 +347,30 @@ freq_bands = {
     [135, 280]
 };
 
-% 濾波器設定
-order = 4;     % Butterworth 濾波器階數
-fs = 1000;     % 取樣率
+% Filter configuration.
+order = 4;     % Butterworth filter order.
+fs = 1000;     % Sampling rate.
 
-% 對每筆 EMG_data 進行處理
+% Process each EMG recording.
 for i = 1:numel(EMG_data)
     try
-        % 檢查 notchfilter 數據是否存在
+        % Check that notch-filtered data are available.
         if isfield(EMG_data{i}, 'notchfilter') && ~isempty(EMG_data{i}.notchfilter)
             raw_data = EMG_data{i}.notchfilter;
 
-            % 初始化儲存空間
+            % Initialize storage.
             EMG_data{i}.frequencydivision = cell(1, numel(freq_bands));
 
             for b = 1:numel(freq_bands)
-                % 計算歸一化截止頻率
+                % Compute normalized cutoff frequencies.
                 fc_low = freq_bands{b}(1);
                 fc_high = freq_bands{b}(2);
                 Wn = [fc_low, fc_high] / (fs / 2);
 
-                % 設計 Butterworth 濾波器
+                % Design the Butterworth filter.
                 [b_butter, a_butter] = butter(order, Wn, 'bandpass');
 
-                % 套用濾波器
+                % Apply the filter.
                 EMG_data{i}.frequencydivision{b} = filtfilt(b_butter, a_butter, raw_data);
             end
 
@@ -382,34 +382,34 @@ for i = 1:numel(EMG_data)
     end
 end
 
-% 顯示成功處理的檔案數量
+% Report the number of processed files.
 num_band_filtered = sum(cellfun(@(x) isfield(x, 'frequencydivision') && ~isempty(x.frequencydivision), EMG_data));
 disp(['已成功對 ', num2str(num_band_filtered), ' 個檔案進行 frequency division 處理。']);
 
-% 畫圖檢查結果
-raw_data = EMG_data{1,1}.notchfilter;% 取出第1筆的原始 Butterworth 資料
-% 繪圖：與四個頻帶比較
+% Inspect the processing results.
+raw_data = EMG_data{1,1}.notchfilter;% Extract the first recording's Butterworth-filtered data.
+% Compare the original signal with the four frequency bands.
 for band_idx = 1:4
     processed_data = EMG_data{1,1}.frequencydivision{band_idx};
-    % 建立頻帶範圍文字（e.g., "10–30 Hz"）
+    % Format the frequency-band label, for example 10-30 Hz.
     band_label = sprintf('%d–%d Hz', freq_bands{band_idx}(1), freq_bands{band_idx}(2));
 
-    % 呼叫自訂函數畫圖，並加上頻帶資訊作為附加標題
+    % Plot with the band label appended to the title.
     plot_frequency_response(raw_data, processed_data, ch_list, fs, legend_names, band_label);
 end
 
 %% Exploratory envelope: squared rectification and low-pass filtering
 
-% 定義電極名稱
+% Define electrode names.
 ch_list =  {'LGA', 'RGA', 'LTA', 'RTA', 'LBF', 'RBF', 'LRF', 'RRF'};
 
-% 取樣頻率
+% Sampling frequency.
 fs = 1000;
 
-% 設定圖例名稱
+% Define legend labels.
 legend_names = {'frequency division data', 'Lowpass envelope'};
 
-fc_low = 9; % 低通濾波器截止頻率 (Hz)
+fc_low = 9; % Low-pass cutoff frequency (Hz).
 [b_env, a_env] = butter(4, fc_low / (fs/2), 'low');
 
 for i = 1:numel(EMG_data)
@@ -417,15 +417,15 @@ for i = 1:numel(EMG_data)
         if isfield(EMG_data{i}, 'frequencydivision') && ~isempty(EMG_data{i}.frequencydivision)
             EMG_data{i}.envelope_rms = cell(1, numel(EMG_data{i}.frequencydivision));
             for band_idx = 1:numel(EMG_data{i}.frequencydivision)
-                % 取得分頻後資料
+                % Extract the band-filtered data.
                 band_data = EMG_data{i}.frequencydivision{band_idx};
 
-                % 計算 envelope（abs -> square -> lowpass）
+                % Compute the envelope: absolute value, square, then low-pass filter.
                 abs_data = abs(band_data);
                 squared_data = abs_data .^ 2;
                 filtered_data = filtfilt(b_env, a_env, squared_data);
 
-                % 儲存
+                % Store the result.
                 EMG_data{i}.envelope_rms{band_idx} = filtered_data;
             end
         else
@@ -436,30 +436,30 @@ for i = 1:numel(EMG_data)
     end
 end
 
-% 顯示已成功進行 envelope 處理的檔案數量
+% Report the number of envelope-processed files.
 num_files_enveloped = sum(cellfun(@(x) isfield(x, 'envelope') && ~isempty(x.envelope), EMG_data));
 disp(['已成功對 ', num2str(num_files_enveloped), ' 個檔案進行 lowpass envelope 處理。']);
 
-% 畫圖檢查結果
+% Inspect the processing results.
 for band_idx = 1:4
     raw_data = EMG_data{1,1}.frequencydivision{band_idx};
     processed_data = EMG_data{1,1}.envelope{band_idx};
-    % 建立頻帶範圍文字（e.g., "10–30 Hz"）
+    % Format the frequency-band label, for example 10-30 Hz.
     band_label = sprintf('%d–%d Hz', freq_bands{band_idx}(1), freq_bands{band_idx}(2));
 
-    % 呼叫自訂函數畫圖，並加上頻帶資訊作為附加標題
+    % Plot with the band label appended to the title.
     plot_all_channels(raw_data, processed_data, ch_list, fs, legend_names, band_label);
 end
 
 %% Report-described Hilbert envelope (review transform dimension before reproduction)
 
-% 定義電極名稱
+% Define electrode names.
 ch_list =  {'LGA', 'RGA', 'LTA', 'RTA', 'LBF', 'RBF', 'LRF', 'RRF'};
 
-% 取樣頻率
+% Sampling frequency.
 fs = 1000;
 
-% 設定圖例名稱
+% Define legend labels.
 legend_names = {'frequency division data', 'Hilbert envelope'};
 
 for i = 1:numel(EMG_data)
@@ -469,8 +469,8 @@ for i = 1:numel(EMG_data)
             for band_idx = 1:numel(EMG_data{i}.frequencydivision)
                 band_data = EMG_data{i}.frequencydivision{band_idx};
 
-                % Hilbert transform（針對每個 channel）
-                analytic_signal = hilbert(band_data')';  % 對 column 運算
+                % Apply the archived Hilbert transform expression; see docs/METHODS.md for the dimension caveat.
+                analytic_signal = hilbert(band_data')';  % Operate along the specified array dimension.
                 envelope_data = abs(analytic_signal);
 
                 EMG_data{i}.envelope{band_idx} = envelope_data;
@@ -483,33 +483,33 @@ for i = 1:numel(EMG_data)
     end
 end
 
-% 顯示成功處理的檔案數量
+% Report the number of processed files.
 num_files_enveloped = sum(cellfun(@(x) isfield(x, 'envelope') && ~isempty(x.envelope), EMG_data));
 disp(['已成功對 ', num2str(num_files_enveloped), ' 個檔案進行 hilbert envelope 處理。']);
 
-% 畫圖檢查結果
+% Inspect the processing results.
 for band_idx = 1:4
     raw_data = EMG_data{1,1}.frequencydivision{band_idx};
     processed_data = EMG_data{1,1}.envelope{band_idx};
-    % 建立頻帶範圍文字（e.g., "10–30 Hz"）
+    % Format the frequency-band label, for example 10-30 Hz.
     band_label = sprintf('%d–%d Hz', freq_bands{band_idx}(1), freq_bands{band_idx}(2));
 
-    % 呼叫自訂函數畫圖，並加上頻帶資訊作為附加標題
+    % Plot with the band label appended to the title.
     plot_all_channels(raw_data, processed_data, ch_list, fs, legend_names, band_label);
 end
 
 %% Alternative RMS envelope (overwrites the Hilbert envelope if executed)
 
-% 定義電極名稱
+% Define electrode names.
 ch_list =  {'LGA', 'RGA', 'LTA', 'RTA', 'LBF', 'RBF', 'LRF', 'RRF'};
 
-% 取樣頻率
+% Sampling frequency.
 fs = 1000;
 
-% 設定圖例名稱
+% Define legend labels.
 legend_names = {'frequency division data', 'RMS envelope'};
 
-% RMS 視窗大小（樣本點數）
+% RMS window size in samples.
 window_size = 50; 
 
 for i = 1:numel(EMG_data)
@@ -521,7 +521,7 @@ for i = 1:numel(EMG_data)
                 band_data = EMG_data{i}.frequencydivision{band_idx};  % (samples x channels)
                 rms_data = zeros(size(band_data));
 
-                % 對每個通道執行 RMS 包絡線
+                % Compute the RMS envelope for each channel.
                 for ch = 1:size(band_data, 2)
                     rms_data(:, ch) = sqrt(movmean(band_data(:, ch).^2, window_size));
                 end
@@ -536,38 +536,38 @@ for i = 1:numel(EMG_data)
     end
 end
 
-% 顯示成功處理的檔案數量
+% Report the number of processed files.
 num_files_enveloped = sum(cellfun(@(x) isfield(x, 'envelope') && ~isempty(x.envelope), EMG_data));
 disp(['已成功對 ', num2str(num_files_enveloped), ' 個檔案進行 RMS envelope 處理。']);
 
-% 畫圖檢查結果
+% Inspect the processing results.
 for band_idx = 1:4
     raw_data = EMG_data{1,1}.frequencydivision{band_idx};
     processed_data = EMG_data{1,1}.envelope{band_idx};
-    % 建立頻帶範圍文字（e.g., "10–30 Hz"）
+    % Format the frequency-band label, for example 10-30 Hz.
     band_label = sprintf('%d–%d Hz', freq_bands{band_idx}(1), freq_bands{band_idx}(2));
 
-    % 呼叫自訂函數畫圖，並加上頻帶資訊作為附加標題
+    % Plot with the band label appended to the title.
     plot_all_channels(raw_data, processed_data, ch_list, fs, legend_names, band_label);
 end
 
-%% plotting data at each processing stage
+%% Inspect signals at each processing stage
 
 % sample rate
 fs = 1000; 
 
-% 定義處理階段及對應字段
+% Define processing stages and their fields.
 stages = {'alignment', 'detrend', 'notchfilter', 'butterworthfilter', 'envelope'};
 
 for i = 1:numel(EMG_data)
 
-    % 檢查所有處理階段數據是否存在
+    % Check that all processing stages are available.
     missing_stage = false;
     for stage = stages
         if isempty(EMG_data{i}.(stage{1}))
             disp(['檔案: ', files(i).name, ' 缺少 ', stage{1}, ' 的數據']);
             missing_stage = true;
-            break;  % 如果有一個階段缺失，跳過此檔案
+            break;  % Skip this file if any required stage is missing.
         end
     end
 
@@ -575,85 +575,85 @@ for i = 1:numel(EMG_data)
         continue;
     end
     
-    % 建立新圖表
+    % Create a figure.
     figure;
     
-    % 使用迴圈繪製各處理階段
+    % Plot each processing stage.
     for j = 1:length(stages)
         subplot(5, 1, j);
-        time_axis = (0:size(EMG_data{i}.(stages{j}), 1)-1) / fs;  % 計算時間軸
+        time_axis = (0:size(EMG_data{i}.(stages{j}), 1)-1) / fs;  % Compute the time axis.
         
-        % 將多個 channel 的資料取平均值
-        merged_data = mean(EMG_data{i}.(stages{j}), 2);  % 每行取平均值
+        % Average across channels.
+        merged_data = mean(EMG_data{i}.(stages{j}), 2);  % Average each sample row across channels.
         
-        % 繪製合併後的數據
+        % Plot the channel-averaged data.
         plot(time_axis, merged_data);  
         title([upper(stages{j}(1)), stages{j}(2:end), ' Data for file: ', files(i).name], 'Interpreter', 'none');
-        xlabel('Time (s)');  % 更改 x 軸標籤為時間
+        xlabel('Time (s)');  % Label the x-axis with time.
         
-        % 根據處理階段決定 y 軸單位
+        % Select the y-axis label for the processing stage.
         if strcmp(stages{j}, 'envelope')
-            ylabel('Voltage² (µV²)');  % envelope的y軸標籤為 µV²
+            ylabel('Voltage² (µV²)');  % Use the archived squared-voltage label for the envelope.
         else
-            ylabel('Voltage (µV)');  % 其他處理階段的y軸標籤為 µV
+            ylabel('Voltage (µV)');  % Use the voltage label for other processing stages.
         end
     end
     
-    % 調整圖表布局
+    % Adjust the figure layout.
     sgtitle(['EMG Data Processing Stages for file: ', files(i).name], 'Interpreter', 'none');
 end
 
-%% mark LHS & RHS on EMG_data.envelope 
+%% Mark left and right heel strikes on EMG envelopes
 
 % sample rate
 fs = 1000; 
 
-% 儲存channel名稱
+% Store channel names.
 channel_names = {'LGA', 'RGA', 'LTA', 'RTA', 'LBF', 'RBF', 'LRF', 'RRF'};
 
-% 設置保存圖片的路徑
+% Set the figure output path.
 save_path = fullfile(paths.results_root, 'envelope');
 
-% 定義 numLHSdata 和 numRHSdata
-numLHSdata = numel(LHS_data);  % 確認 LHS_data 是 cell 
-numRHSdata = numel(RHS_data);  % 確認 RHS_data 是 cell
+% Define the left and right heel-strike record counts.
+numLHSdata = numel(LHS_data);  % Check that LHS_data is a cell array.
+numRHSdata = numel(RHS_data);  % Check that RHS_data is a cell array.
 
-% 繪製時間對 Voltage²(µV²) 的圖
+% Plot squared voltage against time.
 for i = 1:numel(EMG_data)
     try
-        % 檢查 EMG_data{i} 是否有效
+        % Check that the EMG trial is valid.
         if isempty(EMG_data{i}) || ~isfield(EMG_data{i}, 'envelope') || isempty(EMG_data{i}.envelope)
             warning('EMG_data %d: alignment 或 envelope 欄位為空或缺失', i);
             continue;
         end
 
-        % 檢查 LHS_data 和 RHS_data 是否有效
+        % Check left and right heel-strike data.
         if i > numLHSdata || i > numRHSdata || isempty(LHS_data{i}) || isempty(RHS_data{i})
             warning('檔案 %d 的 LHS_data 或 RHS_data 無效或為空', i);
             continue;
         end
 
-        % 根據採樣頻率計算時間向量
+        % Compute the time vector from the sampling rate.
         time_vector = (0:size(EMG_data{i}.envelope, 1) - 1) / fs;
         
-        % 創建新圖形窗口
+        % Create a new figure.
         figure;
-        num_channels = size(EMG_data{i}.envelope, 2); % 獲取通道數
+        num_channels = size(EMG_data{i}.envelope, 2); % Get the number of channels.
         
         for j = 1:num_channels
-            subplot(num_channels, 1, j); % 創建子圖
+            subplot(num_channels, 1, j); % Create a subplot.
             
-            % 繪製時間對 Voltage² 的圖
+            % Plot squared voltage against time.
             plot(time_vector, EMG_data{i}.envelope(:, j));
             
-            % 使用通道名稱更新標題
+            % Set the title using the channel name.
             title(channel_names{j}); 
-            xlabel('時間 (s)'); % x 軸標籤
-            ylabel('Voltage² (µV²)'); % y 軸標籤
-            %xlim([15 20]); % 設定 x 軸範圍
-            grid on; % 添加網格
+            xlabel('時間 (s)'); % X-axis label.
+            ylabel('Voltage² (µV²)'); % Y-axis label.
+            % xlim([15 20]); % Set the x-axis limits.
+            grid on; % Add a grid.
             
-            % 標示 LHS_data 和 RHS_data 的點
+            % Mark left and right heel-strike times.
             hold on;
             if ~isempty(LHS_data{i})
                 LHS_points = LHS_data{i};
@@ -673,28 +673,28 @@ for i = 1:numel(EMG_data)
             hold off;
         end
         
-        % 使用 sgtitle 添加總標題
+        % Add an overall title with sgtitle.
         sgtitle(['EMG envelope for path1\_', sprintf('%02d', i)]);
         
-        % 保存圖形
+        % Save the figure.
         %saveas(gcf, fullfile(save_path, ['EMG envelope for ', 'path1_', sprintf('%02d', i), '.png']));
-        %close(gcf); % 關閉圖形窗口，節省資源
+        % close(gcf); % Close the figure to release resources.
 
     catch ME
-        % 捕獲錯誤並顯示錯誤信息
+        % Report the error and continue.
         warning('繪製檔案 %d 的 envelope 時出現錯誤: %s', i, ME.message);
     end
 end
 
-%% resample EMG (fs = 500 same as EEG)
+%% Resample EMG to the EEG sampling rate
 
-% 定義電極名稱
+% Define electrode names.
 ch_list =  {'LGA', 'RGA', 'LTA', 'RTA', 'LBF', 'RBF', 'LRF', 'RRF'};
 
-% 設定圖例名稱
+% Define legend labels.
 legend_names = {'cliped data', 'resampled data'};
 
-% 頻段定義（單位：Hz）
+% Frequency bands in Hz.
 freq_bands = {
     [10, 30],       
     [30, 45], 
@@ -702,54 +702,54 @@ freq_bands = {
     [135, 280]
 };
 
-fs_new = 500;  % 統一成 500 Hz
-fs_old = 1000; % 原始 EMG 是 1000 Hz
+fs_new = 500;  % Resample to the EEG rate of 500 Hz.
+fs_old = 1000; % Original EMG sampling rate: 1000 Hz.
 
 for i = 1:length(EMG_data)
 
-    [num_bands, num_clips] = size(EMG_data{i}.clip); % 頻段數量 x clip 數量
+    [num_bands, num_clips] = size(EMG_data{i}.clip); % Frequency-band count by clip count.
 
     for j = 1:num_clips
         for band = 1:num_bands
 
-            % 取得 normalize 後的資料
+            % Extract the normalized data.
             clipData = EMG_data{i}.clip{band, j};  % (M x N)
 
-            % 對每一個通道做降採樣
+            % Downsample each channel.
             clipData_resampled = resample(clipData, fs_new, fs_old);  % (M' x N)
 
-            % 儲存
+            % Store the result.
             EMG_data{i}.resampled{band, j} = clipData_resampled;
 
         end
     end
 end
 
-% 顯示成功處理的檔案數量
+% Report the number of processed files.
 num_files_resampled = sum(cellfun(@(x) isfield(x, 'resampled') && ~isempty(x.resampled), EMG_data));
 disp(['已成功對 ', num2str(num_files_resampled), ' 個檔案進行 resampled 處理。']);
 
-% 畫圖檢查結果
+% Inspect the processing results.
 raw_data = EMG_data{1, 1}.clip{1, 1};
 processed_data = EMG_data{1, 1}.resampled{1, 1};
 fs_old = 1000;
 fs_new =500;
-% 建立頻帶範圍文字（e.g., "10–30 Hz"）
+% Format the frequency-band label, for example 10-30 Hz.
 band_label = sprintf('%d–%d Hz', freq_bands{1}(1), freq_bands{1}(2));
 
-    % 時間軸計算
+    % Compute the time axis.
     t_old = (0:size(raw_data, 1)-1) / fs_old;
     t_new = (0:size(processed_data, 1)-1) / fs_new;
     
-    % 每個通道繪製（使用 subplot）
+    % Use one subplot for each channel.
     for ch_idx = 1:size(raw_data, 2)
         figure;
     
-        % 時域資料
+        % Time-domain data.
         raw_ch = raw_data(:, ch_idx);
         proc_ch = processed_data(:, ch_idx);
 
-        % 上半部：raw data
+        % Upper panel: raw data.
         subplot(2, 1, 1);
         plot(t_old, raw_ch, 'b', 'LineWidth', 1.5);
         title(['Raw Data - Channel: ', ch_list{ch_idx}, band_label]);
@@ -758,7 +758,7 @@ band_label = sprintf('%d–%d Hz', freq_bands{1}(1), freq_bands{1}(2));
         legend(legend_names{1});
         grid on;
 
-        % 下半部：processed data
+        % Lower panel: processed data.
         subplot(2, 1, 2);
         plot(t_new, proc_ch, 'r', 'LineWidth', 1.5);
         title(['Processed Data - Channel: ', ch_list{ch_idx}, band_label]);
@@ -768,15 +768,15 @@ band_label = sprintf('%d–%d Hz', freq_bands{1}(1), freq_bands{1}(2));
         grid on;
     end
 
-%% normalize
+%% Normalize phase-segmented EMG
 
-% 定義電極名稱
+% Define electrode names.
 ch_list =  {'LGA', 'RGA', 'LTA', 'RTA', 'LBF', 'RBF', 'LRF', 'RRF'};
 
-% 設定圖例名稱
+% Define legend labels.
 legend_names = {'resampled data', 'normalize data'};
 
-% 頻段定義（單位：Hz）
+% Frequency bands in Hz.
 freq_bands = {
     [10, 30],       
     [30, 45], 
@@ -784,37 +784,37 @@ freq_bands = {
     [135, 280]
 };
 
-% 選擇 'max', 'mean', 'mvc', 'std', 'zscore' 其中一種方法
+% Choose max, mean, mvc, std, or zscore normalization.
 method = 'max'; 
 
-for i = 1:length(EMG_data) % 遍歷每一組 EMG 資料
+for i = 1:length(EMG_data) % Iterate over EMG recordings.
 
-    [num_bands, num_clips] = size(EMG_data{i}.resampled); % 頻段數量 x clip 數量
+    [num_bands, num_clips] = size(EMG_data{i}.resampled); % Frequency-band count by clip count.
 
     for j = 1:num_clips % transient stage
 
-        for band = 1:num_bands % 頻段 (1~4)
-            clipData = EMG_data{i}.resampled{band, j}; % 正確取得每段資料
+        for band = 1:num_bands % Frequency bands 1 through 4.
+            clipData = EMG_data{i}.resampled{band, j}; % Extract the current phase segment.
             
-            % 呼叫標準化函數並儲存
+            % Apply normalization and store the result.
             EMG_data{i}.normalize{band, j} = normalizeClipData(clipData, method);
         end
 
     end
 end
 
-% 顯示成功處理的檔案數量
+% Report the number of processed files.
 num_files_normalize = sum(cellfun(@(x) isfield(x, 'normalize') && ~isempty(x.normalize), EMG_data));
 disp(['已成功對 ', num2str(num_files_normalize), ' 個檔案進行 normalize 處理。']);
 
 function normalizedData = normalizeClipData(data, method)
-    % normalizeClipData 對整個數據矩陣進行標準化
-    %   data   : 輸入的數據矩陣（行: 數據點，列: 通道）
-    %   method : 標準化方法 ('max', 'mean', 'mvc', 'std', 'zscore')
+    % Normalize each channel of the input matrix.
+    % data: input matrix with samples in rows and channels in columns.
+    % method: max, mean, mvc, std, or zscore.
 
-    normalizedData = data; % 初始化
+    normalizedData = data; % Initialize storage.
 
-    % 遍歷所有列
+    % Iterate over channel columns.
     for k = 1:size(data, 2)
         switch method
             case 'max'
@@ -822,38 +822,38 @@ function normalizedData = normalizeClipData(data, method)
                 minVal = min(data(:, k));
                 range = maxVal - minVal;
                 if range ~= 0
-                    normalizedData(:, k) = (data(:, k) - minVal) / range; % [0, 1] 範圍
+                    normalizedData(:, k) = (data(:, k) - minVal) / range; % Scale to [0, 1].
                 else
-                    normalizedData(:, k) = data(:, k); % 無法標準化則原樣輸出
+                    normalizedData(:, k) = data(:, k); % Retain the original data when normalization is undefined.
                 end
 
             case 'mean'
                 meanVal = mean(data(:, k));
                 range = max(data(:, k)) - min(data(:, k));
                 if range ~= 0
-                    normalizedData(:, k) = (data(:, k) - meanVal) / range; % 偏移至[-0.5, 0.5]
+                    normalizedData(:, k) = (data(:, k) - meanVal) / range; % Center by the mean and scale by the observed range.
                 else
                     normalizedData(:, k) = data(:, k);
                 end
 
-            case 'mvc' % 最大隨意收縮 (Maximal Voluntary Contraction) 
-                maxVal = max(abs(data(:, k))); % 計算該通道的最大值
+            case 'mvc' % Legacy mvc option: normalize by the observed absolute peak.
+                maxVal = max(abs(data(:, k))); % Compute the channel's absolute peak.
                 if maxVal ~= 0
-                    normalizedData(:, k) = data(:, k) / maxVal; % 正規化至 [0, 1]
+                    normalizedData(:, k) = data(:, k) / maxVal; % Scale by the observed absolute peak.
                 else
-                    normalizedData(:, k) = data(:, k); % 若最大值為 0，則保持原數據
+                    normalizedData(:, k) = data(:, k); % Retain the original data when the peak is zero.
                 end
 
             case 'std'
                 stdVal = std(data(:, k));
                 if stdVal ~= 0
-                    normalizedData(:, k) = data(:, k) / stdVal; % 單位化
+                    normalizedData(:, k) = data(:, k) / stdVal; % Scale by the channel standard deviation.
                 else
                     normalizedData(:, k) = data(:, k);
                 end
 
             case 'zscore'
-                normalizedData(:, k) = zscore(data(:, k)); % 使用 zscore 函數
+                normalizedData(:, k) = zscore(data(:, k)); % Apply zscore.
 
             otherwise
                 error('無效的標準化方法。請選擇 "max", "mean", "mvc", "std", "zscore"');
@@ -861,27 +861,27 @@ function normalizedData = normalizeClipData(data, method)
     end
 end
 
-% 畫圖檢查結果
+% Inspect the processing results.
 raw_data = EMG_data{1, 1}.clip{1, 1};
 processed_data = EMG_data{1, 1}.normalize{1, 1};
 fs_old = 1000;
 fs_new =500;
-% 建立頻帶範圍文字（e.g., "10–30 Hz"）
+% Format the frequency-band label, for example 10-30 Hz.
 band_label = sprintf('%d–%d Hz', freq_bands{1}(1), freq_bands{1}(2));
 
-    % 時間軸計算
+    % Compute the time axis.
     t_old = (0:size(raw_data, 1)-1) / fs_old;
     t_new = (0:size(processed_data, 1)-1) / fs_new;
     
-    % 每個通道繪製（使用 subplot）
+    % Use one subplot for each channel.
     for ch_idx = 1:size(raw_data, 2)
         figure;
     
-        % 時域資料
+        % Time-domain data.
         raw_ch = raw_data(:, ch_idx);
         proc_ch = processed_data(:, ch_idx);
 
-        % 上半部：raw data
+        % Upper panel: raw data.
         subplot(2, 1, 1);
         plot(t_old, raw_ch, 'b', 'LineWidth', 1.5);
         title(['Raw Data - Channel: ', ch_list{ch_idx}, band_label]);
@@ -890,7 +890,7 @@ band_label = sprintf('%d–%d Hz', freq_bands{1}(1), freq_bands{1}(2));
         legend(legend_names{1});
         grid on;
 
-        % 下半部：processed data
+        % Lower panel: processed data.
         subplot(2, 1, 2);
         plot(t_new, proc_ch, 'r', 'LineWidth', 1.5);
         title(['Processed Data - Channel: ', ch_list{ch_idx}, band_label]);
@@ -902,18 +902,18 @@ band_label = sprintf('%d–%d Hz', freq_bands{1}(1), freq_bands{1}(2));
 
 %% NMF alternative A: sparsenmfnnls (choose one NMF section)
 
-% 設定 K 值範圍
-k_range = 1:8; % 肌肉通常 synergy 是 2-6
+% Set the candidate K range.
+k_range = 1:8; % Evaluate the archived candidate range.
 
-% 設定 sparsenmfnnls 的參數
-option.beta = 0.2;      % 提高 Y 的稀疏性（讓協同作用向量更集中）
-option.eta = 0.05;      % 適度壓縮 A，讓肌肉貢獻分布更具生理意義
-option.iter = 1000;     % 增加迭代次數，有助於更收斂
-option.dis = false;     % 保持不顯示訊息
-option.residual = 1e-6; % 更嚴格的收斂條件（殘差差異閾值）
-option.tof = 1e-6;      % 更嚴格的目標函數差異閾值
+% Configure sparsenmfnnls.
+option.beta = 0.2;      % Regularization parameter for Y sparsity.
+option.eta = 0.05;      % Regularization parameter for A.
+option.iter = 1000;     % Iteration limit.
+option.dis = false;     % Suppress solver messages.
+option.residual = 1e-6; % Residual convergence tolerance.
+option.tof = 1e-6;      % Objective-difference tolerance.
 
-% 初始化儲存結構
+% Initialize the result structure.
 nmf_results = cell(length(EMG_data), 1);
 VAF_results = cell(length(EMG_data), 1);
 
@@ -939,7 +939,7 @@ for i = 1:length(EMG_data)
                 k = k_range(k_idx);
 
                 try
-                    % 呼叫 Sparse NNMF
+                    % Call the sparse NMF solver.
                     [A, Y, numIter, tElapsed, finalResidual] = sparsenmfnnls(data, k, option);
                 catch ME
                     fprintf('sparsenmfnnls 失敗: EMG_data{%d}.normalize{%d, %d}, K=%d\n', i, band, clip, k);
@@ -949,16 +949,16 @@ for i = 1:length(EMG_data)
 
                 reconstructed = A * Y;
 
-                % 計算 VAF
-                SST = sum(sum((data - mean(data, 'all')).^2));  % 總變異
-                SSE = sum(sum((data - reconstructed).^2));      % 殘差平方和
+                % Compute VAF.
+                SST = sum(sum((data - mean(data, 'all')).^2));  % Total sum of squares.
+                SSE = sum(sum((data - reconstructed).^2));      % Residual sum of squares.
                 VAF_per_k(k_idx) = 1 - (SSE / SST);
 
-                % 計算 relative residual
-                data_norm = norm(data, 'fro');  % 原始資料的 Frobenius norm
+                % Compute the relative residual.
+                data_norm = norm(data, 'fro');  % Frobenius norm of the input.
                 relative_residual = finalResidual / data_norm;
 
-                % 儲存結果
+                % Store the results.
                 nmf_per_k{k_idx}.A = A;
                 nmf_per_k{k_idx}.Y = Y;
                 nmf_per_k{k_idx}.numIter = numIter;
@@ -976,16 +976,16 @@ end
 
 %% NMF alternative B: nmfnnls (overwrites alternative A if executed)
 
-% 設定 K 值範圍
-k_range = 1:8; % 肌肉通常 synergy 是 2-6
+% Set the candidate K range.
+k_range = 1:8; % Evaluate the archived candidate range.
 
-% 設定 nmfnnls 的參數
-option.iter = 1000;     % 最大迭代次數
-option.dis = false;     % 不顯示中間訊息
-option.residual = 1e-6; % 更嚴格的收斂條件（殘差）
-option.tof = 1e-6;      % 更嚴格的目標函數差異閾值
+% Configure nmfnnls.
+option.iter = 1000;     % Maximum iteration count.
+option.dis = false;     % Suppress intermediate messages.
+option.residual = 1e-6; % Residual convergence tolerance.
+option.tof = 1e-6;      % Objective-difference tolerance.
 
-% 初始化儲存結構
+% Initialize the result structure.
 nmf_results = cell(length(EMG_data), 1);
 VAF_results = cell(length(EMG_data), 1);
 
@@ -1011,7 +1011,7 @@ for i = 1:length(EMG_data)
                 k = k_range(k_idx);
 
                 try
-                    % 改為使用 nmfnnls（無 sparsity 約束）
+                    % Use nmfnnls without the sparsity constraint.
                     [A, Y, numIter, tElapsed, finalResidual] = nmfnnls(data, k, option);
                 catch ME
                     fprintf('nmfnnls 失敗: EMG_data{%d}.normalize{%d, %d}, K=%d\n', i, band, clip, k);
@@ -1021,16 +1021,16 @@ for i = 1:length(EMG_data)
 
                 reconstructed = A * Y;
 
-                % 計算 VAF
-                SST = sum(sum((data - mean(data, 'all')).^2));  % 總變異
-                SSE = sum(sum((data - reconstructed).^2));      % 殘差平方和
+                % Compute VAF.
+                SST = sum(sum((data - mean(data, 'all')).^2));  % Total sum of squares.
+                SSE = sum(sum((data - reconstructed).^2));      % Residual sum of squares.
                 VAF_per_k(k_idx) = 1 - (SSE / SST);
 
-                % 計算 relative residual
+                % Compute the relative residual.
                 data_norm = norm(data, 'fro');
                 relative_residual = finalResidual / data_norm;
 
-                % 儲存結果
+                % Store the results.
                 nmf_per_k{k_idx}.A = A;
                 nmf_per_k{k_idx}.Y = Y;
                 nmf_per_k{k_idx}.numIter = numIter;
@@ -1046,20 +1046,20 @@ for i = 1:length(EMG_data)
     end
 end
 
-%% select the best K (by transitional stages)
+%% Select the synergy count for each movement phase
 
-% 設定參數
+% Set analysis parameters.
 k_range = 1:8;
 threshold_vaf = 0.9;
 num_shuffle = 100;
 transient_stages = {'Sit to Stand', 'Stand to Walk', 'Walk to Stop'};
 num_stages = length(transient_stages);
 
-% 初始化
+% Initialize storage.
 K_candidates_by_stage = cell(1, num_stages);
 threshold_deltaVAF_all = cell(length(EMG_data), 1);
 
-% 第一階段：收集所有符合條件的 K
+% First pass: collect valid candidate K values.
 for i = 1:length(EMG_data)
     [row_n, col_n] = size(EMG_data{i}.normalize);
     threshold_deltaVAF_all{i} = NaN(row_n, col_n);
@@ -1073,7 +1073,7 @@ for i = 1:length(EMG_data)
             VAF_per_k = VAF_results{i}{j, k}.VAF;
             deltaVAF = VAF_results{i}{j, k}.deltaVAF;
 
-            % Shuffle 計算 threshold
+            % Compute the shuffle-based threshold.
             all_deltas = [];
             for s = 1:num_shuffle
                 shuffled = VAF_per_k(randperm(length(VAF_per_k)));
@@ -1084,18 +1084,18 @@ for i = 1:length(EMG_data)
             threshold_deltaVAF = abs(0.75 * median(all_deltas));
             threshold_deltaVAF_all{i}(j, k) = threshold_deltaVAF;
 
-            % 篩選符合條件的 K 值
+            % Select K values satisfying both criteria.
             valid_Ks = k_range((VAF_per_k >= threshold_vaf) & ([0, deltaVAF] >= threshold_deltaVAF));
 
-            % 儲存至對應 stage
+            % Store the result for the corresponding phase.
             if k <= num_stages && ~isempty(valid_Ks)
-                K_candidates_by_stage{k} = [K_candidates_by_stage{k}, valid_Ks(1)]; % 取最小有效 K
+                K_candidates_by_stage{k} = [K_candidates_by_stage{k}, valid_Ks(1)]; % Use the smallest valid K.
             end
         end
     end
 end
 
-% 第二階段：統計每個 stage 的眾數 K
+% Second pass: compute the modal K for each phase.
 mode_K_by_stage = NaN(1, num_stages);
 fprintf('\n==== 每個 transient stage 的最佳 K 值統計 ====\n');
 for s = 1:num_stages
@@ -1113,7 +1113,7 @@ for s = 1:num_stages
     end
 end
 
-% 第三階段：根據統一的 mode_K_by_stage 選擇 NMF 結果
+% Third pass: select NMF results using the phase-specific modal K.
 best_nmf = cell(length(EMG_data), 1);
 
 for i = 1:length(EMG_data)
@@ -1144,7 +1144,7 @@ for i = 1:length(EMG_data)
 end
 
 
-% 平均計算所有 relative Residual 
+% Aggregate relative residuals.
 all_relative_residuals = [];
 
 for i = 1:length(best_nmf)
@@ -1160,7 +1160,7 @@ for i = 1:length(best_nmf)
     end
 end
 
-% 計算平均
+% Compute the mean.
 if ~isempty(all_relative_residuals)
     mean_relative_residual = mean(all_relative_residuals);
     fprintf('平均 relative residual：%.6f\n', mean_relative_residual);
@@ -1168,20 +1168,20 @@ else
     warning('沒有找到任何 relativeResidual 資料可以計算平均。');
 end
 
-%% Plot Synergy Count vs VAF & Synergy Count vs ΔVAF
+%% Plot synergy-count selection diagnostics
 
-% 設定參數
+% Set analysis parameters.
 k_range = 1:8;
 
-% 設置保存圖片的路徑
+% Set the figure output path.
 save_path = fullfile(paths.results_root, 'EMG_synergy_vs_VAF');
 
-% 確保資料夾存在
+% Create the output directory if needed.
 if ~exist(save_path, 'dir')
     mkdir(save_path);
 end
 
-% 頻段與階段標籤
+% Frequency-band and movement-phase labels.
 freq_bands = {
     [10, 30],       
     [30, 45], 
@@ -1193,38 +1193,38 @@ transient_stages = {'Sit to Stand', 'Stand to Walk', 'Walk to Stop'};
 
 for subj = 1:length(VAF_results)
 
-    % 確保子層為 cell array 且非空
+    % Check that the nested cell array is nonempty.
     if isempty(VAF_results{subj}) || ~iscell(VAF_results{subj})
         fprintf('跳過無效 subject：VAF_results{%d}\n', subj);
         continue;
     end
 
-    % 自動取得子 cell 的大小（row: freq, col: stage）
+    % Get the nested cell dimensions: frequency rows by phase columns.
     [num_freq, num_stage] = size(VAF_results{subj});
 
     for i = 1:num_freq  % freq band
         for j = 1:num_stage  % transient stage
 
-            % 檢查是否為空
+            % Check for empty results.
             if isempty(VAF_results{subj}{i, j})
                 fprintf('跳過無效 VAF 結果: VAF_results{%d}{%d,%d}\n', subj, i, j);
                 continue;
             end
 
-            % 定義當前階段名稱
+            % Get the current phase name.
             stage_name = transient_stages{j};
-            % 將階段名稱轉為檔名可用格式（去除空格）
+            % Remove spaces from the phase name for filenames.
             stage_name_clean = regexprep(stage_name, '\s+', '_');
 
-            % 資料取得
+            % Extract the result data.
             VAF = VAF_results{subj}{i, j}.VAF;  
             deltaVAF = VAF_results{subj}{i, j}.deltaVAF;
             threshold_deltaVAF = threshold_deltaVAF_all{subj}(i, j);
 
-            % 畫圖
+            % Plot the results.
             figure;
 
-            % 第一張圖：VAF
+            % First panel: VAF.
             subplot(2, 1, 1);
             plot(k_range, VAF, '-o', 'LineWidth', 1.5, 'MarkerSize', 6);
             hold on;
@@ -1237,10 +1237,10 @@ for subj = 1:length(VAF_results)
             grid on;
             legend(hline1, 'VAF = 0.9', 'Location', 'southeast');
             
-            % 計算 deltaVAF 對應的 K 組合（例如 K=1→2, 2→3, ..., 7→8）
+            % Label successive K transitions for delta-VAF.
             delta_labels = arrayfun(@(k) sprintf('%d→%d', k, k+1), k_range(1:end-1), 'UniformOutput', false);
 
-            % 第二張圖：ΔVAF
+            % Second panel: delta-VAF.
             subplot(2, 1, 2);
             plot(k_range(2:end), deltaVAF, '-o', 'LineWidth', 1.5, 'MarkerSize', 6, 'Color', 'b');
             hold on;
@@ -1250,23 +1250,23 @@ for subj = 1:length(VAF_results)
             xlabel('Synergy Pair (K → K+1)', 'FontSize', 12);
             ylabel('ΔVAF', 'FontSize', 12);
             xticks(k_range(2:end));
-            xticklabels(delta_labels);  % 用 K→K+1 的文字作為 x 軸
+            xticklabels(delta_labels);  % Label the x-axis with K-to-K+1 transitions.
             grid on;
             legend(hline2, sprintf('Shuffle heuristic (%.4f)', threshold_deltaVAF), 'Location', 'northeast');
 
-            % 主標題
+            % Overall title.
             sgtitle(sprintf('path2_%02d - %s - %d-%d Hz' ,  ...
                 subj, stage_name, freq_bands{i}(1), freq_bands{i}(2)), ...
                 'Interpreter', 'none');
 
-            % 建立儲存檔名（將空格換成底線以避免路徑問題）
+            % Replace spaces with underscores in the output filename.
             save_filename = sprintf('path2_%02d_%s_frequency_%d-%dHz.png', ...
                 subj, stage_name_clean, freq_bands{i}(1), freq_bands{i}(2));
 
-            % 組合完整儲存路徑
+            % Construct the full output path.
             save_fullpath = fullfile(save_path, save_filename);
 
-            % 儲存圖檔
+            % Save the figure file.
             saveas(gcf, save_fullpath);
             close(gcf);
 
@@ -1276,15 +1276,15 @@ end
 
 %% Match repeated-trial synergies: cosine k-means and one-to-one matching
 
-% 設置保存圖片的路徑
+% Set the figure output path.
 save_path = fullfile(paths.results_root, 'EMG_synergy_distance_matrix_path2');
 
-% 確保資料夾存在
+% Create the output directory if needed.
 if ~exist(save_path, 'dir')
     mkdir(save_path);
 end
 
-% 頻率區段
+% Frequency bands.
 freq_bands = {
     [10, 30],
     [30, 45],
@@ -1292,14 +1292,14 @@ freq_bands = {
     [135, 280]
 };
 
-% 動作階段
+% Movement phases.
 transient_stages = {'Sit to Stand', 'Stand to Walk', 'Walk to Stop'};
 
 synergy_matching = cell(length(freq_bands), length(transient_stages), length(best_nmf));
 consensus_synergies = cell(length(freq_bands), length(transient_stages));
 avg_silhouette_scores = nan(length(freq_bands), length(transient_stages));
 
-% 初始化儲存空間
+% Initialize storage.
 for i = 1:length(best_nmf)
     for band = 1:length(freq_bands)
         for clip = 1:length(transient_stages)
@@ -1310,14 +1310,14 @@ for i = 1:length(best_nmf)
 end
 
 for clip = 1:length(transient_stages)
-    common_K = mode_K_by_stage(clip);  % 每個 clip 的最佳 synergy 數量
+    common_K = mode_K_by_stage(clip);  % Selected synergy count for this clip.
 
     for band = 1:length(freq_bands)
         all_synergies = [];
         subject_synergies = {};
         subject_activations = {};
 
-        % 收集所有 subject 的 synergy
+        % Pool synergy vectors across trials.
         for i = 1:length(best_nmf)
             if isempty(best_nmf{i}) || isempty(best_nmf{i}{band, clip}) || ...
                ~isfield(best_nmf{i}{band, clip}, 'A') || ~isfield(best_nmf{i}{band, clip}, 'Y')
@@ -1345,7 +1345,7 @@ for clip = 1:length(transient_stages)
             continue;
         end
 
-        % 執行 k-means clustering 找共識 synergy
+        % Find consensus synergies with k-means clustering.
         [cluster_idx, cluster_centers] = kmeans(all_synergies, common_K, ...
             'Distance', 'cosine', 'Replicates', 20, 'MaxIter', 10000);
 
@@ -1355,7 +1355,7 @@ for clip = 1:length(transient_stages)
         avg_silhouette = mean(silhouette_scores);
         avg_silhouette_scores(band, clip) = avg_silhouette;
 
-        % 計算所有 subject 的距離矩陣並平均（使用 reorder 後的 A）
+        % Compute trial distance matrices using reordered A.
         dist_mats = zeros(common_K, common_K, length(subject_synergies));
         valid_subjects = 0;
 
@@ -1366,12 +1366,12 @@ for clip = 1:length(transient_stages)
                 continue;
             end
 
-            % 配對
+            % Match trial synergies to consensus centers.
             A_t = A';  % K × muscles
             dist_tmp = pdist2(A_t, cluster_centers, 'cosine');  % K × K
             matching = matchpairs(dist_tmp, 1);  % K x 2
 
-            % 依據共識順序重排 A 與 Y
+            % Reorder A and Y to the consensus order.
             reordered_A = zeros(size(A,1), common_K);  % muscles × K
             reordered_Y = zeros(common_K, size(Y,2));  % K × time
 
@@ -1383,12 +1383,12 @@ for clip = 1:length(transient_stages)
                 end
             end
 
-            % 儲存重排後的資料
+            % Store the reordered data.
             EMG_data{i}.reordered.A{band, clip} = reordered_A;
             EMG_data{i}.reordered.Y{band, clip} = reordered_Y;
             synergy_matching{band, clip, i} = matching;
 
-            % 使用 reordered_A 計算 distance matrix
+            % Compute distances from reordered_A.
             reordered_A_t = reordered_A';  % K × muscles
             dist_mat = pdist2(reordered_A_t, cluster_centers, 'cosine');  % K × K
 
@@ -1401,10 +1401,10 @@ for clip = 1:length(transient_stages)
             continue;
         end
 
-        % 平均距離矩陣
+        % Average the distance matrices.
         mean_dist_mat = mean(dist_mats(:, :, 1:valid_subjects), 3);
 
-        % --- 繪製平均距離矩陣 ---
+        % Plot the mean distance matrix.
         figure;
         imagesc(mean_dist_mat);
         colorbar;
@@ -1420,7 +1420,7 @@ for clip = 1:length(transient_stages)
         ylabel('Trial Synergies');
         set(gca, 'XTick', 1:common_K, 'YTick', 1:common_K);
 
-        % 儲存圖檔
+        % Save the figure file.
         stage_str = strrep(stage_name, ' ', '_');
         filename = sprintf('mean_distance_matrix_%d-%dHz_%s.png', ...
             band_range(1), band_range(2), stage_str);
@@ -1429,18 +1429,18 @@ for clip = 1:length(transient_stages)
     end
 end
 
-%% Plot Synergy Coefficient（A） & Synergy Activation Pattern（Y） 
+%% Plot trial synergy coefficients and activations
 
-% 儲存圖檔的資料夾路徑
+% Figure output directory.
 save_folder = fullfile(paths.results_root, 'EMG_synergy_individual');
 if ~exist(save_folder, 'dir')
     mkdir(save_folder);
 end
 
-% 肌肉標籤
+% Muscle labels.
 muscle_labels = {'LGA', 'RGA', 'LTA', 'RTA', 'LBF', 'RBF', 'LRF', 'RRF'};
 
-% 頻率區段
+% Frequency bands.
 freq_bands = {
     [10, 30];
     [30, 45];
@@ -1448,17 +1448,17 @@ freq_bands = {
     [135, 280];
 };
 
-% 動作階段名稱
+% Movement-phase names.
 transient_stages = {'Sit to Stand', 'Stand to Walk', 'Walk to Stop'};
 
-% 插值長度
+% Interpolation length.
 resample_len = 1000;
 x_target = linspace(0, 1, resample_len);
 
 for stage_idx = 1:length(transient_stages)
     stage_name = transient_stages{stage_idx};
     clip = stage_idx;
-    common_K = mode_K_by_stage(stage_idx);  % 各階段 Synergy 數
+    common_K = mode_K_by_stage(stage_idx);  % Phase-specific synergy count.
 
     for band_idx = 1:length(freq_bands)
         freq_range = freq_bands{band_idx};
@@ -1467,7 +1467,7 @@ for stage_idx = 1:length(transient_stages)
             A = EMG_data{subj_idx}.reordered.A{band_idx, clip};
             Y = EMG_data{subj_idx}.reordered.Y{band_idx, clip};
 
-            % 檢查資料有效性
+            % Check data validity.
             if isempty(A) || isempty(Y)
                 fprintf('Trial %d 無資料，跳過。\n', subj_idx);
                 continue;
@@ -1478,14 +1478,14 @@ for stage_idx = 1:length(transient_stages)
                 continue;
             end
 
-            % 插值 Y
+            % Interpolate Y.
             x_orig = linspace(0, 1, size(Y, 2));
             Y_interp = zeros(common_K, resample_len);
             for k = 1:common_K
                 Y_interp(k, :) = interp1(x_orig, Y(k, :), x_target, 'linear');
             end
 
-            % 繪圖
+            % Plot the result.
             time_percentage = linspace(0, 100, resample_len);
             colors = lines(common_K);
             figure('Position', [100, 100, 1200, 180 * common_K]);
@@ -1516,7 +1516,7 @@ for stage_idx = 1:length(transient_stages)
                 subj_idx, stage_name, freq_range(1), freq_range(2), common_K), ...
                 'Interpreter', 'none');
 
-            % 儲存圖片
+            % Save the image.
             save_filename = sprintf('Trial%02d_%s_%d-%dHz.png', ...
                 subj_idx, strrep(stage_name, ' ', '_'), freq_range(1), freq_range(2));
             save_path = fullfile(save_folder, save_filename);
@@ -1526,18 +1526,18 @@ for stage_idx = 1:length(transient_stages)
     end
 end
 
-%% Plot Average Synergy Coefficient（A） &  Average Synergy Activation Pattern（Y） 
+%% Plot mean synergy coefficients and activations
 
-% 儲存圖檔的資料夾路徑
+% Figure output directory.
 save_folder = fullfile(paths.results_root, 'EMG_synergy_A_Y_path2');
 if ~exist(save_folder, 'dir')
     mkdir(save_folder);
 end
 
-% 肌肉標籤
+% Muscle labels.
 muscle_labels = {'LGA', 'RGA', 'LTA', 'RTA', 'LBF', 'RBF', 'LRF', 'RRF'};
 
-% 頻率區段
+% Frequency bands.
 freq_bands = {
     [10, 30];
     [30, 45];
@@ -1545,17 +1545,17 @@ freq_bands = {
     [135, 280];
 };
 
-% 動作階段名稱
+% Movement-phase names.
 transient_stages = {'Sit to Stand', 'Stand to Walk', 'Walk to Stop'};
 
-% 初始化儲存結構（freq_band × stage）
+% Initialize results by frequency band and movement phase.
 Y_avg_all = cell(length(freq_bands), length(transient_stages));
 A_avg_all = cell(length(freq_bands), length(transient_stages));
 
 for stage_idx = 1:length(transient_stages)
     stage_name = transient_stages{stage_idx};
     clip = stage_idx;
-    common_K = mode_K_by_stage(stage_idx);  % 各階段共有的 Synergy 數
+    common_K = mode_K_by_stage(stage_idx);  % Common synergy count for this phase.
 
     for band_idx = 1:length(freq_bands)
         freq_range = freq_bands{band_idx};
@@ -1588,7 +1588,7 @@ for stage_idx = 1:length(transient_stages)
             continue;
         end
 
-        % ------- 插值並平均 Y（500 個時間點） -------
+        % Interpolate and average Y over 500 normalized time points.
         resample_len = 500;
         Y_interp_all = zeros(common_K, resample_len, length(Y_all));
 
@@ -1601,10 +1601,10 @@ for stage_idx = 1:length(transient_stages)
             end
         end
 
-        Y_avg = mean(Y_interp_all, 3);  % 平均後的 Y
+        Y_avg = mean(Y_interp_all, 3);  % Mean activation matrix.
         Y_avg_all{band_idx, stage_idx} = Y_avg;
 
-        % ------- 平均 A 與標準差 -------
+        % Compute the mean and standard deviation of A.
         A_stack = cat(3, A_all{:});
         A_avg = mean(A_stack, 3);
         A_std = std(A_stack, 0, 3);
@@ -1615,7 +1615,7 @@ for stage_idx = 1:length(transient_stages)
             'subject_indices', subject_indices ...
         );
 
-        % ------- 繪圖 -------
+        % Plot the results.
         time_percentage = linspace(0, 100, size(Y_avg, 2));
         colors = lines(common_K);
         figure('Position', [100, 100, 1200, 180 * common_K]);
@@ -1657,15 +1657,15 @@ for stage_idx = 1:length(transient_stages)
     end
 end
 
-% 儲存 A_avg_all 和 Y_avg_all
+% Store A_avg_all and Y_avg_all.
 save(fullfile(save_folder, 'EMG_synergy_summary.mat'), 'A_avg_all', 'Y_avg_all');
 
-%% spectrogram for muscle syngery
+%% Inspect muscle-synergy spectrograms
 
-% 動作階段名稱
+% Movement-phase names.
 transient_stages = {'Sit to Stand', 'Stand to Walk', 'Walk to Stop'};
 
-% 頻率區段（肌肉用）
+% EMG frequency bands.
 freq_bands = {
     [10, 30];
     [30, 45];
@@ -1673,29 +1673,29 @@ freq_bands = {
     [135, 280];
 };
 
-% 取樣頻率
+% Sampling frequency.
 fs = 1000;
 
-% 儲存路徑
+% Output path.
 output_folder = fullfile(paths.results_root, 'spectrogram');
 if ~exist(output_folder, 'dir')
     mkdir(output_folder);
 end
 
-% ========== 建立 window 設定（根據頻段中心頻率） ==========
+% Configure windows from each band's center frequency.
 stft_config = containers.Map;
 for s = 1:length(transient_stages)
     for b = 1:size(freq_bands,1)
         key = sprintf('%d_%d', s, b);
         center_freq = mean(freq_bands{b});
-        ideal_win = round((1 / center_freq) * fs * 4); % 四個週期
+        ideal_win = round((1 / center_freq) * fs * 4); % Four cycles.
         stft_config(key) = struct( ...
             'win_len', ideal_win, ...
             'overlap', floor(ideal_win * 0.5));
     end
 end
 
-% ========== 計算全域色階範圍 ========== 
+% Compute global color-scale limits.
 global_min = inf;
 global_max = -inf;
 
@@ -1720,7 +1720,7 @@ for band = 1:size(freq_bands, 1)
     end
 end
 
-% ========== 畫圖 ========== 
+% Plot the results.
 for band = 1:size(freq_bands, 1)
     band_range = freq_bands{band};
 
@@ -1735,11 +1735,11 @@ for band = 1:size(freq_bands, 1)
         nfft = max(256, 2^nextpow2(win_len));
         window = hamming(win_len);
 
-        % 用 tiledlayout 來避免重疊
+        % Use tiledlayout to avoid overlapping panels.
         fig = figure('Name', sprintf('Stage: %s | Band: %d–%dHz', ...
             transient_stages{stage}, band_range(1), band_range(2)), ...
             'NumberTitle', 'off', 'Visible', 'off', ...
-            'Position', [100, 100, 1000, 200 + 200*K]);  % 根據通道數調整高度
+            'Position', [100, 100, 1000, 200 + 200*K]);  % Adjust the figure height for the channel count.
 
         t = tiledlayout(K, 1, 'Padding', 'compact', 'TileSpacing', 'compact');
         title(t, sprintf('Spectrogram - %s | %d–%d Hz', ...
@@ -1751,7 +1751,7 @@ for band = 1:size(freq_bands, 1)
             [~, F, T, P] = spectrogram(signal, window, overlap, nfft, fs);
             P_dB = 10 * log10(abs(P) + eps);
 
-            % 只保留頻段範圍
+            % Retain frequencies within the band.
             freq_mask = (F >= band_range(1)) & (F <= band_range(2));
             F_band = F(freq_mask);
             P_band = P_dB(freq_mask, :);
@@ -1765,8 +1765,8 @@ for band = 1:size(freq_bands, 1)
             colormap jet;
         end
 
-        % 建立 colorbar 在整張圖右側
-        cb = colorbar('Position', [0.93 0.1 0.02 0.8]); % 自訂位置（視圖大小調整）
+        % Place a color bar on the right of the figure.
+        cb = colorbar('Position', [0.93 0.1 0.02 0.8]); % Use a custom color-bar position.
         cb.Label.String = 'Power (dB)';
         cb.FontSize = 10;
 
@@ -1778,15 +1778,15 @@ for band = 1:size(freq_bands, 1)
     end
 end
 
-%% stft
+%% Inspect short-time Fourier transforms
 
-% 輸出資料夾
+% Output directory.
 output_folder_stft = fullfile(paths.results_root, 'stft');
 if ~exist(output_folder_stft, 'dir')
     mkdir(output_folder_stft);
 end
 
-% ========== 計算全域色階 ==========
+% Compute global color limits.
 global_min = inf;
 global_max = -inf;
 
@@ -1814,7 +1814,7 @@ for band = 1:size(freq_bands, 1)
     end
 end
 
-% ========== 畫圖 ==========
+% Plot the results.
 for band = 1:size(freq_bands, 1)
     band_range = freq_bands{band};
     win_len = round(win_times(band) * fs);
@@ -1839,7 +1839,7 @@ for band = 1:size(freq_bands, 1)
 
             P_dB = 10 * log10(abs(S).^2 + eps);
 
-            % 裁切頻率
+            % Restrict the frequency range.
             freq_mask = (F >= band_range(1)) & (F <= band_range(2));
             F_band = F(freq_mask);
             P_band = P_dB(freq_mask, :);
@@ -1856,7 +1856,7 @@ for band = 1:size(freq_bands, 1)
         sgtitle(sprintf('STFT - %s | %d–%d Hz', ...
             transient_stages{stage}, band_range(1), band_range(2)));
         
-        % 統一 colorbar
+        % Use a shared color bar.
         h = colorbar;
         h.Label.String = 'Power (dB)';
 

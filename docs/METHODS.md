@@ -1,5 +1,7 @@
 # Methods and source correspondence
 
+[README](../README.md) · [Methods](METHODS.md) · [Results](RESULTS.md) · [Reproduction](REPRODUCIBILITY.md) · [Project notes](PROJECT_NOTES.md)
+
 The supplied research brief establishes reported experimental context. Source inspection establishes implemented calculations, not reproduction of the findings.
 
 ## EMG and NMF

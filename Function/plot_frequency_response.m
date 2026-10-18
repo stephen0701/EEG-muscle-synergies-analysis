@@ -1,23 +1,23 @@
 
 function plot_frequency_response(raw_data, processed_data, ch_list, fs, legend_names, band_label)
-    % PLOT_FREQUENCY_RESPONSE - 對 raw_data 和 processed_data 的每個通道繪製頻率響應圖，
-    % 並在最後繪製平均頻譜圖
+    % PLOT_FREQUENCY_RESPONSE - Plot each channel's raw and processed spectra.
+    % Also plot the average spectrum across channels.
     %
-    % raw_data : 原始數據 (data * channel)
-    % processed_data : 處理後數據 (data * channel)
-    % ch_list : 通道名稱的 cell array
-    % fs : 取樣頻率 (Hz)
-    % legend_names : 用來標註圖例的名稱，長度應與數據集數量一致
-    % 若 band_label 為空或未提供，則不在標題中加入頻段標示
+    % raw_data: input matrix, samples by channels.
+    % processed_data: processed matrix, samples by channels.
+    % ch_list: cell array of channel names.
+    % fs: sampling frequency in Hz.
+    % legend_names: one label for each dataset.
+    % Omit the band label from titles when it is empty or absent.
 
-    % 檢查 band_label 是否存在或為空
+    % Check whether a band label was provided.
     if nargin < 6 || isempty(band_label)
         band_label = '';
     else
-        band_label = [' [' band_label ']']; % 加上括號以便顯示
+        band_label = [' [' band_label ']']; % Enclose the band label in brackets.
     end
 
-    % 基本檢查
+    % Validate the basic inputs.
     if size(raw_data, 2) ~= size(processed_data, 2)
         error('原始數據與處理後數據的通道數必須相同。');
     end
@@ -28,18 +28,18 @@ function plot_frequency_response(raw_data, processed_data, ch_list, fs, legend_n
         error('通道名稱列表的長度必須與數據通道數一致。');
     end
 
-    % 計算參數
+    % Compute plotting parameters.
     time = (0:(size(raw_data, 1) - 1)) / fs;
     nfft = 2^nextpow2(size(raw_data, 1));
     frequency = (0:(nfft - 1)) * (fs / nfft);
     freq_axis = frequency(1:floor(nfft/2)+1);
 
-    % 單通道繪圖
+    % Plot each channel.
     for ch_idx = 1:size(raw_data, 2)
         raw_channel_data = raw_data(:, ch_idx);
         processed_channel_data = processed_data(:, ch_idx);
 
-        % FFT 處理
+        % Compute the FFT.
         processed_magnitude = abs(fft(processed_channel_data, nfft) / nfft);
         processed_magnitude = processed_magnitude(1:floor(nfft / 2) + 1);
         processed_magnitude(2:end-1) = 2 * processed_magnitude(2:end-1);
@@ -47,7 +47,7 @@ function plot_frequency_response(raw_data, processed_data, ch_list, fs, legend_n
 
         figure;
 
-        % 時域圖
+        % Time-domain plot.
         subplot(2, 1, 1);
         plot(time, raw_channel_data, 'b', 'LineWidth', 1.5, 'DisplayName', legend_names{1});
         hold on;
@@ -59,7 +59,7 @@ function plot_frequency_response(raw_data, processed_data, ch_list, fs, legend_n
         legend('show');
         grid on;
 
-        % 頻域圖
+        % Frequency-domain plot.
         subplot(2, 1, 2);
         plot(freq_axis, processed_db, 'LineWidth', 1.5, 'DisplayName', legend_names{2});
         xlabel('Frequency (Hz)');
@@ -70,8 +70,8 @@ function plot_frequency_response(raw_data, processed_data, ch_list, fs, legend_n
         xlim([0 100]);
     end
 
-    % 所有通道的平均頻譜圖
-    % 平均處理後數據的 FFT 結果（頻譜平均，不是先平均訊號）
+    % Plot the average spectrum across channels.
+    % Average channel FFT results rather than averaging signals before the FFT.
     magnitude_matrix = zeros(length(freq_axis), size(processed_data, 2));
 
     for ch = 1:size(processed_data, 2)
@@ -85,7 +85,7 @@ function plot_frequency_response(raw_data, processed_data, ch_list, fs, legend_n
     avg_mag = mean(magnitude_matrix, 2);
     avg_db = 20 * log10(avg_mag + eps);
 
-    % 繪圖
+    % Plot the result.
     figure;
     plot(freq_axis, avg_db, 'k', 'LineWidth', 2);
     xlabel('Frequency (Hz)');

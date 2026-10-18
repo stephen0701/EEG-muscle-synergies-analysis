@@ -1,104 +1,68 @@
-# EEG and Muscle Synergies During Transitional Movements
+# EEG and Muscle Synergy Analysis
 
-**A case study of lower-limb muscle coordination and EEG spectral topography.**
+A case study of lower-limb muscle coordination and EEG scalp-power patterns during transitional movements.
 
-This project investigates how EMG-derived muscle co-activation modules vary during sit-to-stand (STS), stand-to-walk (STW), and walk-to-stop (WTS), and qualitatively compares these patterns with EEG scalp power. It forms part of Sing-Hao Wang's undergraduate capstone research on human-exoskeleton collaboration.
+[Results and figures](docs/RESULTS.md) · [Methods](docs/METHODS.md) · [Usage](docs/REPRODUCIBILITY.md) · [Project notes](docs/PROJECT_NOTES.md) · [Project report (PDF)](docs/reports/digital-signal-processing-of-cortical-and-muscular-dynamics.pdf)
 
-**Study scope: 10 trials from one participant.** The wider acquisition cohort contained 15 healthy participants, but this repository does not establish a 15-participant group result. Steady gait was not included in this synergy analysis. EEG-synergy coherence was not calculated.
+## Research objective and scope
 
-## Research contribution
+This undergraduate project examines EMG-derived muscle synergies during **sit to stand (STS), stand to walk (STW), and walk to stop (WTS)**, then compares them qualitatively with EEG spectral topography.
 
-Sing-Hao Wang primarily implemented the code, assembled the processing workflow, analyzed the results, and prepared the research presentation (project-owner confirmation). The contribution integrates band-specific EMG processing, NMF extraction, repeated-trial matching, and EEG topographic visualization. External NMF solvers and EEG cleaning algorithms are not claimed as new algorithms.
+The analysis covers **10 trials from one participant**. The wider acquisition cohort included 15 healthy participants; this repository does not establish a group-level result. Steady gait was excluded, and quantitative EEG–synergy coherence was not calculated.
 
-## Project report
+## Contributions
 
-Read the project report: [*Digital Signal Processing of Cortical and Muscular Dynamics* (PDF)](docs/reports/digital-signal-processing-of-cortical-and-muscular-dynamics.pdf).
+**Sing-Hao Wang** primarily implemented the code, integrated the processing workflow, analyzed the results, and prepared the research presentation. The work combines band-specific EMG analysis, NMF extraction, repeated-trial matching, and EEG visualization. Existing NMF solvers and EEG cleaning methods are credited as external methods; see [attribution](docs/PROJECT_NOTES.md#attribution-and-sources).
 
-The repository owner identified this document as the report for this project. The [report index](docs/reports/README.md) records its original filename and file provenance.
+## Methodology
 
-## Data and methodology
+1. Align **eight-channel sEMG (1000 Hz)**, **32-channel EEG (500 Hz)**, and **markerless motion capture (30 Hz)** to movement phases.
+2. Filter EMG into 10–30, 30–45, 45–120, and 135–280 Hz bands; extract envelopes, resample to 500 Hz, and normalize phase segments.
+3. Extract nonnegative muscle weights and activations with NMF; select counts using the archived VAF/shuffle heuristic and match repeated trials with cosine-distance clustering and one-to-one assignment.
+4. Preprocess EEG, review ICA manually, and plot phase-specific band power for qualitative comparison.
 
-The setup combined 32-channel EEG at 500 Hz, eight bilateral lower-limb sEMG channels at 1000 Hz, and four-camera markerless motion capture at 30 Hz. Participant recordings are not distributed with this portfolio.
+The [methods guide](docs/METHODS.md) records exact formulas, the corrected median-based shuffle criterion, and the envelope/NMF alternatives that require explicit selection.
 
-```mermaid
-flowchart LR
-    EMG[Eight-channel EMG] --> Bands[Four frequency bands]
-    Bands --> Envelope[Envelope and phase segmentation]
-    Envelope --> NMF[Resampling, normalization, NMF]
-    NMF --> Match[Count selection and repeated-trial matching]
-    EEG[32-channel EEG] --> Clean[Preprocessing and manual ICA]
-    Clean --> Power[Phase-specific scalp power]
-    Match --> Compare[Qualitative comparison]
-    Power --> Compare
-```
+## Key results
 
-The analysis combines envelope extraction, resampling from 1000 to 500 Hz, nonnegative normalization, NMF (`V ≈ WH`), VAF-based selection, cosine-distance k-means, and one-to-one matching. The owner clarified that count selection uses the archived **median-based shuffle heuristic**, and the report's 75th-percentile wording needs correction. The script still contains envelope/NMF alternatives that overwrite shared variables. [Methods](docs/METHODS.md) records the formulas and remaining reproduction issues; numerical calculations were preserved.
+These are reported observations from the supplied research brief, not newly recomputed findings.
 
-## Findings and evidence
-
-The findings below are transcribed from the owner-supplied research brief summarizing report Chapter 5. They have not been independently recomputed from participant data.
-
-| Reported observation | Scope and interpretation |
+| Observation | Interpretation |
 | --- | --- |
-| Modal synergy count: STS = 3, STW = 3, WTS = 4 | Section 5.3.1, across 10 trials × four bands per phase. A later statement of three consensus synergies per phase conflicts with this; WTS remains unresolved. |
-| LTA, RTA, and LBF co-activation at 30-45 Hz in STS and STW | Descriptive repeated-trial pattern within one participant. |
-| RBF, LRF, and RRF co-activation in STS across four EMG bands | Qualitative observation, not a population-level effect. |
-| Elevated right frontal and left occipital Beta/Low Gamma power in STS | Report-described scalp pattern; the missing acquisition montage prevents independent anatomical verification. |
+| Modal synergy counts: STS = 3, STW = 3, WTS = 4 | A separate three-consensus-synergy statement conflicts with WTS = 4 and remains unresolved. |
+| LTA/RTA/LBF co-activation at 30–45 Hz in STS and STW; RBF/LRF/RRF co-activation across STS bands | Descriptive patterns within one participant. |
+| Reported right-frontal and left-occipital Beta/Low Gamma elevations during STS | Scalp-power observations; the original montage is unavailable for independent anatomical verification. |
 
-L/R = left/right; GA = gastrocnemius, TA = tibialis anterior, BF = biceps femoris, RF = rectus femoris.
+L/R = left/right; TA = tibialis anterior, BF = biceps femoris, RF = rectus femoris.
 
-### Representative figures
+## Representative figures
 
-**Figure-label correction:** the original synergy figures below say “N=10 subjects.” They summarize **10 trials from one participant**. Error bars describe across-trial SD. The original image bytes are retained; this correction applies to their titles and interpretation.
+![STS synergy coefficients and activations at 30–45 Hz](docs/figures/synergy_sts_30_45.jpeg)
 
-![STS muscle synergy coefficients and activation profiles at 30-45 Hz, across ten trials from one participant](docs/figures/synergy_sts_30_45.jpeg)
-
-**STS synergies at 30-45 Hz (source Fig. 5.3a).** The three rows pair muscle coefficients with activation profiles on normalized movement time. The figure illustrates the reported LTA/RTA/LBF and RBF/LRF/RRF co-activation patterns within this case study.
-
-![STW muscle synergy coefficients and activation profiles at 30-45 Hz, across ten trials from one participant](docs/figures/synergy_stw_30_45.jpeg)
-
-**STW synergies at 30-45 Hz (source Fig. 5.3b).** Together with the STS figure, this supports the descriptive LTA/RTA/LBF observation. Synergy numbers are figure-specific and do not by themselves establish identical modules across movement phases.
+**STS synergies, 30–45 Hz (Fig. 5.3a).** The original title's “N=10 subjects” means **10 trials from one participant**; error bars are across-trial SD. Muscle weights and activations are descriptive case-study outputs.
 
 ![Beta EEG scalp-power maps for STS, STW, and WTS](docs/figures/eeg_beta_topography.jpeg)
 
-**Beta topography (13-30 Hz; source Fig. 5.5a).** Columns show STS, STW, and WTS. The figure uses a shared scale within this band. These are descriptive power visualizations; no calibrated physical power unit or significance is asserted.
+**Beta topography, 13–30 Hz (Fig. 5.5a).** Columns show STS, STW, and WTS with a shared within-band scale. The map does not establish significant effects or quantitative corticomuscular coupling.
 
-![Low Gamma EEG scalp-power maps for STS, STW, and WTS](docs/figures/eeg_low_gamma_topography.jpeg)
+All **eight original figures**, including STW, other EMG bands, VAF, matching, and Low Gamma maps, remain in the [complete results gallery](docs/RESULTS.md), with necessary label and scale clarifications.
 
-**Low Gamma topography (32-46 Hz; source Fig. 5.5b).** Its color scale differs from the Beta figure; do not compare the bands numerically using these scales. Visual correspondence does not demonstrate corticomuscular coupling.
+## Usage and repository guide
 
-The [complete results gallery](docs/RESULTS.md) also includes VAF/ΔVAF selection, matching distances, and all four STS frequency bands, with corrections and analysis caveats beside the original figures. [Figure provenance](docs/FIGURES.md) records source identities and checksums.
+Use **MATLAB R2024a or later**, the required MathWorks toolboxes, EEGLAB/ASR, and the original external NMF/helper functions. Recordings and several acquisition dependencies are not distributed. Configure private input/output paths through `research_paths.m` and the documented environment variables.
 
-## Repository guide
+Read the [reproduction guide](docs/REPRODUCIBILITY.md) before running sections. These scripts share workspace variables and contain alternatives that overwrite earlier results; running every section is not a verified report-reproduction procedure.
 
 | Location | Purpose |
 | --- | --- |
-| [EMG/EMG_data_preprocess.m](EMG/EMG_data_preprocess.m) | Band filtering, envelope alternatives, normalization, NMF, count selection, clustering, matching, and plots |
-| [EEG/EEG_data_preprocess_32channel.m](EEG/EEG_data_preprocess_32channel.m) | EEG processing, manual ICA handoff, topographies, and exploratory EEG-only analyses |
-| [Motion/define_transitional_stages.m](Motion/define_transitional_stages.m) | Motion-derived timing and EEG/EMG phase segmentation |
-| [Function/](Function/) | Shared diagnostic plotting helpers |
-| [research_paths.m](research_paths.m) | Configured private inputs and local output paths |
-| [docs/RESULTS.md](docs/RESULTS.md) | Complete figure gallery with interpretation and corrections |
-| [docs/reports/](docs/reports/) | Project report PDF and file provenance |
-| [docs/REPRODUCIBILITY.md](docs/REPRODUCIBILITY.md) | Requirements, data contract, section order, and reproduction limits |
+| [EMG/](EMG/) | EMG processing, NMF, count selection, matching, and plots. |
+| [EEG/](EEG/) | EEG processing, manual ICA handoff, and spectral visualization. |
+| [Motion/](Motion/) | Motion timing and EEG/EMG phase segmentation. |
+| [Function/](Function/) | Shared diagnostic plotting helpers. |
+| [docs/](docs/) | Methods, full results, reproduction, figure provenance, and project notes. |
 
-The established source folders are retained because the scripts share workspace variables. The project report is organized under `docs/reports/`; see [Data and publication](docs/DATA_AND_PUBLICATION.md) for its review status.
+## Limitations
 
-## Requirements and use
+Repeated trials from one participant do not establish population-level generalization. Missing recordings, montage, ICA/random-state logs, and helper files prevent exact reproduction. The archived Hilbert dimension and overwritten envelope/NMF alternatives remain documented issues. No new significance, clinical efficacy, or quantitative EEG–synergy coupling is claimed.
 
-Use MATLAB R2024a or later for the interspersed local-function layout, with Signal Processing Toolbox, Statistics and Machine Learning Toolbox, and DSP System Toolbox for the original analysis calls. External dependencies include EEGLAB/ASR, the original NMF solvers, `readNPY`, and a missing `plot_topography` helper.
-
-These scripts require section-by-section review. There is no verified end-to-end command or bundled example dataset. Read the [reproduction guide](docs/REPRODUCIBILITY.md) before execution. Private paths are configured through environment variables; local results and common recording formats are ignored by Git.
-
-## Limitations and future work
-
-- Ten repeated trials from one participant cannot support between-participant generalization.
-- Envelope selection, Hilbert dimension, NMF variant, and missing dependencies must be resolved before exact reproduction can be claimed. The shuffle criterion has been clarified by the owner and is documented explicitly.
-- Unseeded randomization, phase alignment, and preprocessing affect the extracted modules. No new statistical significance or clinical efficacy is claimed.
-- Quantitative EEG-synergy coupling and broader participant validation remain future work.
-
-## Attribution and references
-
-Source: Sing-Hao Wang, *Toward Digital Twin-Centered Human-Exoskeleton Collaboration: From Multi-Resolution Corticomuscular Coupling Analyses to an Incremental Mixture-of-Experts Locomotion Controller*, undergraduate capstone report, June 2026, Chapter 5, pp. 45-52, as summarized in the owner-supplied brief.
-
-See [Attribution](docs/ATTRIBUTION.md) and [Verification](docs/VERIFICATION.md). Related project: [EEG-MUAP-analysis](https://github.com/stephen0701/EEG-MUAP-analysis).
+[Project notes](docs/PROJECT_NOTES.md) consolidate research sources, software verification, and data/release status. Related project: [EEG-MUAP-analysis](https://github.com/stephen0701/EEG-MUAP-analysis).

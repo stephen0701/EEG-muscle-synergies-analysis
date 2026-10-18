@@ -1,5 +1,7 @@
 # Reproduction guide
 
+[README](../README.md) · [Methods](METHODS.md) · [Results](RESULTS.md) · [Reproduction](REPRODUCIBILITY.md) · [Project notes](PROJECT_NOTES.md)
+
 ## Status and requirements
 
 This is an organized source archive, not a turnkey reproduction. Recordings, trial-level NMF outputs, ICA decisions, acquisition montage, and several dependencies are absent. Selected original figures were inspected and copied unchanged, not regenerated.
@@ -55,4 +57,4 @@ setenv('RESEARCH_RESULTS_ROOT', '/your/private/results');
 5. Review EMG resampling/normalization, choose one NMF section, then inspect count selection, matching, and summary plots. Record the solver, criterion, and random state; the source does not fix a seed.
 6. Inspect EEG phase-specific power topographies. The comparison with synergy patterns remains qualitative.
 
-This maps dependencies and manual handoffs, not a validated execution recipe for the report. See [Methods](METHODS.md) for blockers and [Verification](VERIFICATION.md) for checks actually completed.
+This maps dependencies and manual handoffs, not a validated execution recipe for the report. See [Methods](METHODS.md) for blockers and [Verification](PROJECT_NOTES.md#verification-record) for checks actually completed.

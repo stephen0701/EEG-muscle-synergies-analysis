@@ -13,4 +13,4 @@ The repository owner identified this document as the report for the EEG and musc
 
 The move reuses the existing blob without changing PDF contents. Document contents and bibliographic metadata were not independently reviewed during organization. The English portfolio's reported findings continue to cite the owner-supplied capstone brief; linking this report does not establish an independent reproduction.
 
-See [Data and publication](../DATA_AND_PUBLICATION.md) for review status and [Attribution](../ATTRIBUTION.md) for the research sources.
+See [Data and release status](../PROJECT_NOTES.md#data-and-release-status) for review status and [Attribution](../PROJECT_NOTES.md#attribution-and-sources) for the research sources.
