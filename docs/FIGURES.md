@@ -2,7 +2,7 @@
 
 [README](../README.md) · [Results and captions](RESULTS.md) · [Project notes](PROJECT_NOTES.md)
 
-The eight Chapter 5 figures came from the owner-supplied reference pack. Original image bytes, axes, curves, and coefficients are preserved; no images were regenerated. Source-to-figure correspondence cannot be fully reconstructed without the original analysis products.
+The eight Chapter 5 figures are preserved from the project's original research materials. Original image bytes, axes, curves, and coefficients are preserved; no images were regenerated. Source-to-figure correspondence cannot be fully reconstructed without the original analysis products.
 
 | Source figure | Repository asset | Dimensions |
 | --- | --- | --- |
@@ -15,6 +15,6 @@ The eight Chapter 5 figures came from the owner-supplied reference pack. Origina
 | fig_5_5a | [eeg_beta_topography.jpeg](figures/eeg_beta_topography.jpeg) | 1684 × 444 |
 | fig_5_5b | [eeg_low_gamma_topography.jpeg](figures/eeg_low_gamma_topography.jpeg) | 1688 × 483 |
 
-[manifest.json](figures/manifest.json) records SHA-256 checksums, dimensions, source filenames, metadata, and interpretation notes. No EXIF tags were found in the supplied JPEGs. Checksums establish byte identity, not scientific validity.
+[manifest.json](figures/manifest.json) records SHA-256 checksums, dimensions, source filenames, metadata, and interpretation notes. No EXIF tags were found in the original JPEGs. Checksums establish byte identity, not scientific validity.
 
-The [results gallery](RESULTS.md) is the primary location for complete captions, label corrections, and interpretation limits. The [methods guide](METHODS.md) records calculation conventions; [project notes](PROJECT_NOTES.md#data-and-release-status) record the current release approval and unchanged visibility.
+The [results gallery](RESULTS.md) is the primary location for complete captions, label corrections, and interpretation limits. The [methods guide](METHODS.md) records calculation conventions; [project notes](PROJECT_NOTES.md#data-and-release-status) record data and release status.

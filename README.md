@@ -25,7 +25,7 @@ The [methods guide](docs/METHODS.md) records exact formulas, the corrected media
 
 ## Key results
 
-These are reported observations from the supplied research brief, not newly recomputed findings.
+These observations are recorded in the project research summary and have not been independently recomputed from the original recordings.
 
 | Observation | Interpretation |
 | --- | --- |
@@ -66,3 +66,5 @@ Read the [reproduction guide](docs/REPRODUCIBILITY.md) before running sections. 
 Repeated trials from one participant do not establish population-level generalization. Missing recordings, montage, ICA/random-state logs, and helper files prevent exact reproduction. The archived Hilbert dimension and overwritten envelope/NMF alternatives remain documented issues. No new significance, clinical efficacy, or quantitative EEG–synergy coupling is claimed.
 
 [Project notes](docs/PROJECT_NOTES.md) consolidate research sources, software verification, and data/release status. Related project: [EEG-MUAP-analysis](https://github.com/stephen0701/EEG-MUAP-analysis).
+
+Academic citation metadata is available in [`CITATION.cff`](CITATION.cff). See [citation and reuse](docs/PROJECT_NOTES.md#citation-and-reuse) for the no-license status and third-party rights.

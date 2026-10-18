@@ -2,11 +2,11 @@
 
 [README](../README.md) · [Methods](METHODS.md) · [Results](RESULTS.md) · [Reproduction](REPRODUCIBILITY.md) · [Project notes](PROJECT_NOTES.md)
 
-This gallery preserves all eight supplied Chapter 5 figures. They are report-era case-study illustrations, not regenerated outputs. The owner confirmed that the study comprises ten trials from one participant, the archived median-based shuffle heuristic is the intended method, and all ten trials contributed to the matching matrix. These clarifications are owner statements, not an independent data reanalysis.
+This gallery preserves all eight Chapter 5 figures. They are report-era case-study illustrations, not regenerated outputs. The author confirmed that the study comprises ten trials from one participant, the archived median-based shuffle heuristic is the intended method, and all ten trials contributed to the matching matrix. These clarifications are author statements, not an independent data reanalysis.
 
 ## 1. Synergy-count selection
 
-**Method correction for Fig. 5.1:** the report's “75th percentile” description should be corrected. The owner confirmed the archived implementation: shuffle the VAF vector 100 times, concatenate its successive differences, and use `abs(0.75 * median(all_deltas))`. The original “75% shuffled” legend is not a percentile threshold. VAF must be at least 0.90, with the additional delta-VAF rule described in [Methods](METHODS.md).
+**Method correction for Fig. 5.1:** the report's “75th percentile” description should be corrected. The author confirmed the archived implementation: shuffle the VAF vector 100 times, concatenate its successive differences, and use `abs(0.75 * median(all_deltas))`. The original “75% shuffled” legend is not a percentile threshold. VAF must be at least 0.90, with the additional delta-VAF rule described in [Methods](METHODS.md).
 
 ![VAF and delta-VAF diagnostics for one STS trial in the 10-30 Hz EMG band](figures/vaf_delta_vaf.jpeg)
 
@@ -14,7 +14,7 @@ This gallery preserves all eight supplied Chapter 5 figures. They are report-era
 
 ## 2. Repeated-trial matching
 
-**Label correction for Fig. 5.2:** “Subject Synergies” means **trial synergies** in this study. The owner confirmed that all ten trials were successfully included in this average. The skipped-trial indexing concern in the general script therefore does not apply to this figure according to that clarification; the source data were not independently rechecked.
+**Label correction for Fig. 5.2:** “Subject Synergies” means **trial synergies** in this study. The author confirmed that all ten trials were successfully included in this average. The skipped-trial indexing concern in the general script therefore does not apply to this figure according to that clarification; the source data were not independently rechecked.
 
 ![Mean cosine-distance matrix comparing matched trial synergies with consensus centers during STW at 10-30 Hz](figures/synergy_matching_distance.jpeg)
 
@@ -34,7 +34,7 @@ This gallery preserves all eight supplied Chapter 5 figures. They are report-era
 
 ## 4. STS synergies across EMG frequency bands
 
-**Title correction for Figs. 5.4a/b:** each “N=10 subjects” label refers to ten repeated trials from one participant. All curves, coefficients, and error bars are preserved from the supplied originals.
+**Title correction for Figs. 5.4a/b:** each “N=10 subjects” label refers to ten repeated trials from one participant. All curves, coefficients, and error bars are preserved from the original figures.
 
 ![STS synergies at 10-30 Hz and 30-45 Hz](figures/synergy_sts_lower_bands.jpeg)
 
